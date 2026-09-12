@@ -54,7 +54,7 @@ interface AuthState {
 export const getTurkishAuthError = (errorCode: string): string => {
   switch (errorCode) {
     case 'auth/unauthorized-domain':
-      return 'Bu IP veya alan adı Firebase tarafından yetkilendirilmemiş. Firebase Console > Authentication > Settings > Authorized domains listesine bağlandığınız adresi (Örn: 192.168.1.11) eklemelisiniz.';
+      return 'Bu alan adı veya IP adresi Firebase tarafından henüz yetkilendirilmemiş. Firebase Console > Authentication > Settings > Authorized domains (Yetkili alan adları) bölümüne bu adresi (örn. shift-assist-ruby.vercel.app) eklemelisiniz.';
     case 'auth/popup-blocked':
       return 'Tarayıcınız açılır pencereyi engelledi. Lütfen pop-up pencerelere izin verin.';
     case 'auth/operation-not-allowed':

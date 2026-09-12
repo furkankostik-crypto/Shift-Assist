@@ -6,6 +6,10 @@ echo ======================================================
 echo.
 echo Hedef: https://github.com/furkankostik-crypto/Shift-Assist
 echo.
+echo Degisiklikler hazirlaniyor...
+git add .
+git commit -m "fix: add firebase configuration fallbacks and domain handling"
+echo.
 echo Kodlar GitHub'a gonderiliyor...
 echo.
 git push -u origin main
