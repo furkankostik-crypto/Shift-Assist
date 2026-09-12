@@ -256,33 +256,54 @@ export const LeavePlannerPage: React.FC = () => {
         </div>
       )}
 
-      {/* Prominent Hero Action Callout */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 text-white border-2 border-primary-400/40 shadow-lg shadow-primary-500/25 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="space-y-1 max-w-md">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
-              {savedVacationsInYear.length > 0
-                ? `${savedVacationsInYear.length} Gün Kayıtlı İzin`
-                : 'Yeni Planlama'}
-            </span>
-          </div>
-          <h2 className="text-lg sm:text-xl font-black tracking-tight">
-            Yıllık İzninizi Kolayca Planlayın
-          </h2>
-          <p className="text-xs text-primary-100/90 leading-relaxed font-medium">
-            Akıllı öneriler ile vardiya dinlenme günlerinizi bağlayarak tatilinizi iki katına çıkarın veya kendi tarihinizi seçin.
-          </p>
-        </div>
+      {/* Leave Planning Action Card - Cohesive App Theme */}
+      <div className="relative overflow-hidden rounded-2xl bg-card border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 mb-4 shadow-2xs group">
+        {/* Subtle background ambient glow */}
+        <div className="pointer-events-none absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-500/5 dark:bg-primary-500/10 blur-2xl" />
+        <div className="pointer-events-none absolute -left-8 -bottom-8 w-28 h-28 rounded-full bg-amber-500/5 dark:bg-amber-500/5 blur-2xl" />
 
-        <button
-          onClick={() => {
-            openLeavePlanning({ year: selectedYear, step: 'METHOD' });
-          }}
-          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white text-primary-700 hover:bg-primary-50 font-black text-sm shadow-md active:scale-95 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>İzin Planla</span>
-        </button>
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="flex items-start gap-3 sm:gap-3.5 max-w-xl">
+            {/* Styled Icon Box */}
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/20 mt-0.5 sm:mt-0 shadow-2xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
+
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 border border-primary-200/70 dark:border-primary-800/60">
+                  <Sparkles className="w-2.5 h-2.5 text-primary-500 shrink-0" />
+                  <span>
+                    {savedVacationsInYear.length > 0
+                      ? `${savedVacationsInYear.length} Gün Kayıtlı İzin`
+                      : 'Akıllı İzin Planlayıcı'}
+                  </span>
+                </span>
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                  {selectedYear} Yılı
+                </span>
+              </div>
+
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
+                Yıllık İzninizi Kolayca Planlayın
+              </h2>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal sm:font-medium">
+                Vardiya dinlenme günlerinizi ve resmi tatilleri bağlayarak tatilinizi uzatın veya kendi tarihinizi seçin.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              openLeavePlanning({ year: selectedYear, step: 'METHOD' });
+            }}
+            className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>İzin Planla</span>
+          </button>
+        </div>
       </div>
 
       {/* Planned Leaves Section Header */}
@@ -319,10 +340,10 @@ export const LeavePlannerPage: React.FC = () => {
             return (
               <div
                 key={periodKey}
-                className="bg-white dark:bg-slate-900 rounded-2xl p-4 border-2 border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3"
+                className="bg-card rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3"
               >
                 {/* Period Header */}
-                <div className="flex items-center justify-between pb-2.5 border-b-2 border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
                   <div className="flex items-center space-x-2.5">
                     <span className="text-xl">{periodInfo.icon}</span>
                     <div>
@@ -354,7 +375,7 @@ export const LeavePlannerPage: React.FC = () => {
                     {groupsInPeriod.map((grp) => (
                       <div
                         key={grp.id}
-                        className="bg-slate-50 dark:bg-slate-800/90 rounded-xl p-3 border-2 border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                        className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-200/80 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
                       >
                         <div className="space-y-0.5">
                           <div className="flex items-center space-x-2">
@@ -410,9 +431,9 @@ export const LeavePlannerPage: React.FC = () => {
         </div>
       ) : (
         /* Empty State Card when no leaves planned */
-        <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border-2 border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-            <Palmtree className="w-7 h-7" />
+        <div className="p-6 sm:p-8 text-center bg-card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <Palmtree className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
@@ -426,7 +447,7 @@ export const LeavePlannerPage: React.FC = () => {
             onClick={() => {
               openLeavePlanning({ year: selectedYear, step: 'METHOD' });
             }}
-            className="px-5 py-2.5 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white font-black text-xs sm:text-sm shadow-md shadow-primary-500/20 active:scale-95 transition-all inline-flex items-center space-x-2 cursor-pointer"
+            className="px-4.5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-extrabold text-xs sm:text-sm shadow-xs active:scale-95 transition-all inline-flex items-center space-x-2 cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
             <span>İlk İznini Planla</span>

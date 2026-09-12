@@ -22,7 +22,7 @@ import {
 } from '../utils/calendarThemes';
 import { CalendarThemeModal } from '../components/CalendarThemeModal';
 import { getLocalBackupData, restoreCloudDataToLocal, type CloudUserData } from '../services/syncService';
-import { openPwaInstallGuide } from '../components/PwaInstallPrompt';
+import { usePwa } from '../utils/pwa';
 
 const SettingsPage = () => {
   const { t, i18n } = useTranslation();
@@ -38,6 +38,8 @@ const SettingsPage = () => {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [jsonBackupStatus, setJsonBackupStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { isInstalled, isStandalone, openGuide, isApple } = usePwa();
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
@@ -130,30 +132,62 @@ const SettingsPage = () => {
           </button>
         </section>
 
-        {/* Mobile PWA Installation Guide Card */}
-        <section className="bg-gradient-to-r from-blue-500/10 via-sky-500/10 to-indigo-500/10 dark:from-blue-950/40 dark:via-sky-950/40 dark:to-indigo-950/40 rounded-2xl p-4 sm:p-5 border border-blue-200/80 dark:border-blue-800/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
-              <Smartphone className="w-5 h-5" />
+        {/* Mobile PWA Installation Guide / Status Card */}
+        {isStandalone || isInstalled ? (
+          <section className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-emerald-950/40 rounded-2xl p-4 sm:p-5 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                    Uygulama Cihazınızda Yüklü
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                    Aktif PWA
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Shift Assist ana ekranınıza eklenmiş durumda, çevrimdışı ve tam ekran olarak çalışıyor.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">
-                Uygulamayı Telefona Yükle (PWA)
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Apple iPhone (Safari) ve Android cihazınıza ana ekrana ekleyerek internetsiz ve tam ekran kullanın.
-              </p>
+            <button
+              type="button"
+              onClick={() => openGuide()}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shrink-0"
+            >
+              <span>Yükleme Bilgisi</span>
+            </button>
+          </section>
+        ) : (
+          <section className="bg-gradient-to-r from-blue-500/10 via-sky-500/10 to-indigo-500/10 dark:from-blue-950/40 dark:via-sky-950/40 dark:to-indigo-950/40 rounded-2xl p-4 sm:p-5 border border-blue-200/80 dark:border-blue-800/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                  {isApple ? "Uygulamayı iPhone'a Yükle (PWA)" : "Uygulamayı Telefona Yükle (PWA)"}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isApple
+                    ? "Safari ile ana ekrana ekleyerek gerçek bir iOS uygulaması gibi tam ekran kullanın."
+                    : "Android veya Apple cihazınıza ana ekrana ekleyerek internetsiz ve tam ekran kullanın."}
+                </p>
+              </div>
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => openPwaInstallGuide()}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-sm shadow-blue-500/25 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
-          >
-            <span>Yükleme Rehberi</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </section>
+            <button
+              type="button"
+              onClick={() => openGuide()}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-sm shadow-blue-500/25 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
+            >
+              <span>Yükleme Rehberi</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </section>
+        )}
 
         {/* Shift Display Mode Settings */}
         <section className="bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">

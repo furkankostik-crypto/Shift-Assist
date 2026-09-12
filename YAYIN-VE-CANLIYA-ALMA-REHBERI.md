@@ -1,4 +1,4 @@
-# 🚀 Shift Assist - Canlıya Alma ve Yayın Rehberi (v1.0.0)
+# 🚀 Shift Assist - Canlıya Alma ve Yayın Rehberi (v1.1.0)
 
 Uygulamanın tüm mobil optimizasyonları, dokunmatik jestleri, marka ikonları, PWA service worker'ı, SEO dosyaları ve sunucu yapılandırmaları tamamlanmıştır.
 

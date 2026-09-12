@@ -20,7 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { openPwaInstallGuide } from './PwaInstallPrompt';
+import { usePwa } from '../utils/pwa';
 import { hapticTap } from '../utils/haptics';
 
 interface NavItemData {
@@ -47,6 +47,9 @@ export const FloatingNavMenu: React.FC = () => {
     syncStatus,
     lastSyncedAt,
   } = useAuthStore();
+
+  const { isInstalled, isStandalone, isApple, openGuide } = usePwa();
+  const shouldShowInstallButton = !isInstalled && !isStandalone;
 
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -327,20 +330,22 @@ export const FloatingNavMenu: React.FC = () => {
 
               {/* Quick Triggers (PWA Install & Setup Wizard) */}
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    openPwaInstallGuide();
-                  }}
-                  className="w-full flex items-center justify-between p-2 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:to-purple-950/40 hover:opacity-90 text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer text-xs font-bold"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Download className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <span>Telefona Yükle</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 opacity-70" />
-                </button>
+                {shouldShowInstallButton && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      openGuide();
+                    }}
+                    className="w-full flex items-center justify-between p-2 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:to-purple-950/40 hover:opacity-90 text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer text-xs font-bold"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Download className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span>{isApple ? "iPhone'a Yükle" : "Telefona Yükle"}</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                  </button>
+                )}
 
                 <button
                   type="button"

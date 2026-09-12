@@ -7,8 +7,11 @@ echo.
 echo Hedef: https://github.com/furkankostik-crypto/Shift-Assist
 echo.
 echo Degisiklikler hazirlaniyor...
+set "COMMIT_MSG=%~1"
+if "%COMMIT_MSG%"=="" set "COMMIT_MSG=feat(release): v1.1.0 - mobile PWA install improvements and leave planner UI refinement"
+echo Commit Mesaji: %COMMIT_MSG%
 git add .
-git commit -m "fix: add firebase configuration fallbacks and domain handling"
+git commit -m "%COMMIT_MSG%"
 echo.
 echo Kodlar GitHub'a gonderiliyor...
 echo.

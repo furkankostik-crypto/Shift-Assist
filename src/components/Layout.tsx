@@ -9,6 +9,7 @@ import FloatingNavMenu from './FloatingNavMenu';
 import { OnboardingWizard } from './OnboardingWizard';
 import { LeavePlanningModal } from './LeavePlanningModal';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
+import { IosInstallBanner } from './IosInstallBanner';
 
 const Layout = () => {
   const theme = useAppStore(state => state.theme);
@@ -66,6 +67,9 @@ const Layout = () => {
 
       {/* Global PWA Mobile Installation Guide */}
       <PwaInstallPrompt />
+
+      {/* Floating Apple iOS Installation Hint Banner */}
+      <IosInstallBanner />
 
       {/* Global Toast Notification */}
       <AnimatePresence>
