@@ -6,34 +6,33 @@ Aşağıdaki popüler ve ücretsiz platformlardan dilediğinizi seçerek uygulam
 
 ---
 
-## 🌐 1. Canlıya Alma (Hosting) Seçenekleri
+## 🌐 1. Canlıya Alma (Hosting): Vercel + GitHub Entegrasyonu (Önerilen)
 
-### Seçenek A: Firebase Hosting ile Canlıya Alma (Önerilen)
-Firebase veritabanı ve kimlik doğrulama kullandığınız için en entegre seçenektir:
+GitHub deponuz (`furkankostik-crypto/Shift-Assist`) ile Vercel doğrudan entegre çalışacak şekilde yapılandırılmıştır. Depoya her yeni commit `git push` yaptığınızda Vercel otomatik olarak kodu derleyip yayına alacaktır.
 
-1. Terminalde Firebase CLI ile oturum açın:
-   ```bash
-   npx firebase login
-   ```
-2. Projenizi Firebase'e bağlayın (eğer daha önce yapmadıysanız):
-   ```bash
-   npx firebase use --add
-   ```
-3. Tek komutla canlıya yayınlayın:
-   ```bash
-   npx firebase deploy --only hosting
-   ```
-> `firebase.json` dosyası projenizde önceden hazırlanmıştır; tüm SPA yönlendirmeleri ve önbellek başlıkları otomatik olarak devreye girer.
+### Adım Adım Kurulum:
+1. [Vercel.com](https://vercel.com) adresine gidin ve **GitHub hesabınızla oturum açın**.
+2. Dashboard ekranında sağ üstteki **"Add New..."** ➔ **"Project"** butonuna tıklayın.
+3. Listeden **`Shift-Assist`** deponuzu bulun ve yanındaki **"Import"** butonuna basın.
+4. Framework olarak **Vite** otomatik algılanacaktır:
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+5. *(Opsiyonel)* Firebase kimlik doğrulama / bulut senkronizasyonu için **Environment Variables** bölümüne `.env.example` dosyasındaki değişkenleri ekleyin. *(Eklenmese bile uygulama Dexie.js ile %100 çevrimdışı çalışır).*
+6. **"Deploy"** butonuna tıklayın.
+7. Yaklaşık 15-20 saniye içinde Vercel size ücretsiz, global CDN ve SSL sertifikalı bir canlı bağlantı (`https://shift-assist.vercel.app`) sağlayacaktır!
+8. `vercel.json` dosyasında yapılandırılan PWA önbellek başlıkları ve SPA yönlendirmeleri otomatik olarak devreye girer.
 
 ---
 
-### Seçenek B: Vercel ile Canlıya Alma
-1. Terminalden doğrudan çalıştırın:
-   ```bash
-   npx vercel --prod
-   ```
-2. Sorulan soruları Enter ile onaylayın (Çıktı klasörü: `dist`). Saniyeler içinde ücretsiz `*.vercel.app` alan adınız hazır olacaktır.
-> `vercel.json` SPA yönlendirmesi hazır durumdadır.
+## 🌐 2. Diğer Canlıya Alma Seçenekleri (Alternatif)
+
+### Seçenek B: Firebase Hosting
+1. Terminalde: `npx firebase login`
+2. Projeyi bağlayın: `npx firebase use --add`
+3. Yayınlayın: `npx firebase deploy --only hosting`
+
+### Seçenek C: Cloudflare Pages / Netlify
+- GitHub reponuzu bağlayıp Build Command: `npm run build`, Output Directory: `dist` olarak ayarlayın. `public/_redirects` sayesinde 404 hatası oluşmaz.
 
 ---
 
