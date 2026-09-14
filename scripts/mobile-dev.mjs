@@ -126,14 +126,14 @@ function cleanup() {
     } else if (vite) {
       vite.kill();
     }
-  } catch (e) {}
+  } catch {}
   try {
     if (isWindows && tunnel && tunnel.pid) {
       spawn('taskkill', ['/pid', String(tunnel.pid), '/T', '/F']);
     } else if (tunnel) {
       tunnel.kill();
     }
-  } catch (e) {}
+  } catch {}
   process.exit(0);
 }
 

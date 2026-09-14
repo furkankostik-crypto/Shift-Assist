@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   format,
   addMonths,
@@ -32,6 +32,7 @@ interface ShiftRangeCalendarProps {
   startDateStr: string;
   endDateStr: string;
   onRangeChange: (startDateStr: string, endDateStr: string) => void;
+  selectedYear?: number;
   currentPattern?: ShiftPattern;
   patternStartDate?: string;
   exceptions?: ShiftException[];
@@ -44,6 +45,7 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
   startDateStr,
   endDateStr,
   onRangeChange,
+  selectedYear,
   currentPattern,
   patternStartDate,
   exceptions = [],
@@ -74,11 +76,30 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
     if (parsedStartDate) {
       return startOfMonth(parsedStartDate);
     }
+    if (selectedYear) {
+      const today = new Date();
+      if (today.getFullYear() === selectedYear) {
+        return startOfMonth(today);
+      }
+      return new Date(selectedYear, 0, 1);
+    }
     return startOfMonth(new Date());
   });
 
-  // Selection step: 'idle' (both set or none) vs 'selecting_end' (user clicked start, picking end)
-  const [isSelectingEnd, setIsSelectingEnd] = useState<boolean>(false);
+  // Keep calendar month aligned if selectedYear changes and there is no active selected start date
+  useEffect(() => {
+    if (selectedYear && !parsedStartDate) {
+      const today = new Date();
+      if (today.getFullYear() === selectedYear) {
+        setCurrentMonth(startOfMonth(today));
+      } else {
+        setCurrentMonth(new Date(selectedYear, 0, 1));
+      }
+    }
+  }, [selectedYear, parsedStartDate]);
+
+  // Selection step: 'idle' (both set or none) vs 'selecting_end' (user picked start, picking end)
+  const isSelectingEnd = Boolean(parsedStartDate && !parsedEndDate);
 
   // Hover state for interactive preview
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
@@ -121,17 +142,14 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
     if (!isSelectingEnd || !parsedStartDate) {
       // First click: sets start date and enters selecting_end phase
       onRangeChange(dayStr, '');
-      setIsSelectingEnd(true);
     } else {
       // Second click:
       if (isBefore(day, parsedStartDate)) {
         // User clicked an earlier date: make it the new start date
         onRangeChange(dayStr, '');
-        setIsSelectingEnd(true);
       } else {
         // User clicked same or later date: complete the range
         onRangeChange(formatToFullDateFast(parsedStartDate), dayStr);
-        setIsSelectingEnd(false);
       }
     }
   };
@@ -140,19 +158,16 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
   const handlePresetClick = (daysCount: number) => {
     if (onPresetDays && parsedStartDate) {
       onPresetDays(daysCount);
-      setIsSelectingEnd(false);
     } else {
       const baseDate = parsedStartDate || new Date();
       const newEnd = addDays(baseDate, daysCount - 1);
       onRangeChange(formatToFullDateFast(baseDate), formatToFullDateFast(newEnd));
-      setIsSelectingEnd(false);
     }
   };
 
   // Reset / Clear to empty
   const handleReset = () => {
     onRangeChange('', '');
-    setIsSelectingEnd(false);
   };
 
   // Vacation span range boundaries from customAnalysis (preceding/succeeding off days)

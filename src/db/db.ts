@@ -388,18 +388,22 @@ db.version(3).stores({
   settings: 'id',
 });
 
-// Auto seed default shift types if empty and ensure system shift types exist
-export async function ensureDefaultShiftTypes() {
-  const count = await db.shiftTypes.count();
-  if (count === 0) {
-    await db.shiftTypes.bulkAdd(DEFAULT_SHIFT_TYPES);
-  } else {
-    const existing = await db.shiftTypes.toArray();
+let seedingPromise: Promise<void> | null = null;
 
-    await db.transaction('rw', db.shiftTypes, db.patterns, async () => {
-      // 1. Update standard default shift types to new user-specified hours and names
-      for (const item of existing) {
-        const updates: Partial<ShiftType> = {};
+// Auto seed default shift types if empty and ensure system shift types exist
+export async function ensureDefaultShiftTypes(): Promise<void> {
+  if (seedingPromise) return seedingPromise;
+  seedingPromise = (async () => {
+    const count = await db.shiftTypes.count();
+    if (count === 0) {
+      await db.shiftTypes.bulkPut(DEFAULT_SHIFT_TYPES);
+    } else {
+      const existing = await db.shiftTypes.toArray();
+
+      await db.transaction('rw', db.shiftTypes, db.patterns, async () => {
+        // 1. Update standard default shift types to new user-specified hours and names
+        for (const item of existing) {
+          const updates: Partial<ShiftType> = {};
 
         if (item.id === 'st-morning' || item.name.toLowerCase() === 'sabah') {
           if (item.startTime !== '06:30' || item.endTime !== '15:00' || item.type !== 'WORK' || !item.isFixed || !item.isDefault) {
@@ -494,7 +498,7 @@ export async function ensureDefaultShiftTypes() {
         (st) => st.id === 'st-sick' || st.name.toLowerCase().includes('rapor')
       );
       if (!hasSick) {
-        await db.shiftTypes.add({
+        await db.shiftTypes.put({
           id: 'st-sick',
           name: 'Rapor',
           startTime: '',
@@ -513,7 +517,7 @@ export async function ensureDefaultShiftTypes() {
         (st) => st.id === 'st-excuse' || st.name.toLowerCase().includes('mazeret')
       );
       if (!hasExcuse) {
-        await db.shiftTypes.add({
+        await db.shiftTypes.put({
           id: 'st-excuse',
           name: 'Mazeret',
           startTime: '',
@@ -531,7 +535,7 @@ export async function ensureDefaultShiftTypes() {
         (st) => st.systemCategory === 'VACATION' || st.id === 'st-vacation' || st.id === 'st-leave'
       );
       if (!hasVacation) {
-        await db.shiftTypes.add({
+        await db.shiftTypes.put({
           id: 'st-vacation',
           name: 'Senelik İzin',
           startTime: '',
@@ -551,7 +555,7 @@ export async function ensureDefaultShiftTypes() {
         (st) => st.systemCategory === 'HOLIDAY' || st.id === 'st-holiday'
       );
       if (!hasHoliday) {
-        await db.shiftTypes.add({
+        await db.shiftTypes.put({
           id: 'st-holiday',
           name: 'Resmi Tatil / Özel Gün',
           startTime: '',
@@ -570,6 +574,10 @@ export async function ensureDefaultShiftTypes() {
 
   // Ensure default team patterns exist and activate D1 by default
   await ensureDefaultPatterns();
+  })().finally(() => {
+    seedingPromise = null;
+  });
+  return seedingPromise;
 }
 
 export async function ensureDefaultPatterns() {
@@ -578,7 +586,7 @@ export async function ensureDefaultPatterns() {
 
   for (const defaultPattern of DEFAULT_PATTERNS) {
     if (!existingIds.has(defaultPattern.id)) {
-      await db.patterns.add(defaultPattern);
+      await db.patterns.put(defaultPattern);
     } else {
       // Sync official 32-day pattern days
       await db.patterns.update(defaultPattern.id, {
@@ -598,8 +606,8 @@ export async function ensureDefaultPatterns() {
   const isDefaultTeamPattern = currentActiveId && currentActiveId.match(/^pattern-[a-d][1-4]$/);
   if (!currentActiveId || !isDefaultTeamPattern) {
     await db.activePatterns.clear();
-    await db.activePatterns.add({
-      id: crypto.randomUUID(),
+    await db.activePatterns.put({
+      id: 'default-active-pattern',
       patternId: 'pattern-d1',
       startDate: DEFAULT_PATTERN_START_DATE,
     });

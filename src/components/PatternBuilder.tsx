@@ -760,7 +760,7 @@ export const PatternBuilder = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-50 bottom-20 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-84 bg-card dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3.5"
+              className="fixed z-50 bottom-[calc(1.25rem+var(--sab))] left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-84 bg-card dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3.5 max-h-[calc(100dvh-var(--sat)-var(--sab)-3rem)] overflow-y-auto"
             >
               {/* Header: Day # and current name */}
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">

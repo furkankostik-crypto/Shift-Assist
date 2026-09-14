@@ -38,7 +38,10 @@ import { ShiftRangeCalendar } from './ShiftRangeCalendar';
 export type WizardStep = 'METHOD' | 'PERIOD_SELECT' | 'OPPORTUNITIES' | 'MANUAL_CALENDAR';
 export type OpportunityShiftFilter = 'ALL' | 'SINGLE' | 'DOUBLE' | 'BRIDGES' | 'BEST';
 
-export const PERIOD_MONTHS: Record<LeavePeriod, { monthIndex: number; name: string }[]> = {
+const EMPTY_EXCEPTIONS: ShiftException[] = [];
+const EMPTY_MONTHS: { monthIndex: number; name: string }[] = [];
+
+const PERIOD_MONTHS: Record<LeavePeriod, { monthIndex: number; name: string }[]> = {
   WINTER_1: [
     { monthIndex: 0, name: 'Ocak' },
     { monthIndex: 1, name: 'Şubat' },
@@ -317,7 +320,7 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
     props.currentPattern ||
     patterns?.find((p) => p.id === activePatternObj?.patternId);
   const patternStartDate = props.patternStartDate || activePatternObj?.startDate;
-  const exceptions = props.exceptions || dbData?.exceptions || [];
+  const exceptions = props.exceptions || dbData?.exceptions || EMPTY_EXCEPTIONS;
   const shiftTypes = props.shiftTypes || dbData?.shiftTypes || [];
 
   // Effective state variables bound to useAppStore
@@ -334,10 +337,6 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
   const setExpandedCardId = setLeavePlanningExpandedCardId;
   const customStartDateStr = leavePlanningCustomStart;
   const customEndDateStr = leavePlanningCustomEnd;
-  const setCustomStartDateStr = (s: string) =>
-    setLeavePlanningCustomRange(s, leavePlanningCustomEnd);
-  const setCustomEndDateStr = (e: string) =>
-    setLeavePlanningCustomRange(leavePlanningCustomStart, e);
 
   // Sync initial period if passed via props
   useEffect(() => {
@@ -378,7 +377,7 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
       currentPattern,
       patternStartDate,
       selectedYear,
-      exceptions || []
+      exceptions
     );
   }, [currentPattern, patternStartDate, selectedYear, exceptions]);
 
@@ -402,12 +401,13 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
   );
 
   // Current period months
-  const currentPeriodMonths = PERIOD_MONTHS[selectedPeriod] || [];
+  const currentPeriodMonths = PERIOD_MONTHS[selectedPeriod] || EMPTY_MONTHS;
 
   // Counts per month for current period
   const monthCounts = useMemo(() => {
     const counts: Record<number, number> = {};
-    for (const m of currentPeriodMonths) {
+    const months = PERIOD_MONTHS[selectedPeriod] || EMPTY_MONTHS;
+    for (const m of months) {
       counts[m.monthIndex] = periodOpportunities.filter(
         (o) =>
           o.vacationStartDate.getMonth() === m.monthIndex ||
@@ -415,7 +415,7 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
       ).length;
     }
     return counts;
-  }, [currentPeriodMonths, periodOpportunities]);
+  }, [selectedPeriod, periodOpportunities]);
 
   // Counts per shift type for current period
   const singleShiftCount = useMemo(
@@ -591,8 +591,7 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
       if (!isNaN(s.getTime())) {
         const sStr = formatToFullDateFast(s);
         const eStr = formatToFullDateFast(addDays(s, daysCount - 1));
-        setCustomStartDateStr(sStr);
-        setCustomEndDateStr(eStr);
+        setLeavePlanningCustomRange(sStr, eStr);
       }
     } catch (e) {
       console.error(e);
@@ -612,8 +611,8 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
   if (!isModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-950 w-full max-w-2xl rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center pt-[calc(var(--sat)+0.75rem)] pb-[calc(var(--sab)+0.75rem)] px-2.5 sm:px-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-950 w-full max-w-2xl rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-var(--sat)-var(--sab)-1.5rem)] my-auto">
         {/* Modal Header */}
         <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center space-x-2">
@@ -1325,9 +1324,9 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
                 startDateStr={customStartDateStr}
                 endDateStr={customEndDateStr}
                 onRangeChange={(start, end) => {
-                  setCustomStartDateStr(start);
-                  setCustomEndDateStr(end);
+                  setLeavePlanningCustomRange(start, end);
                 }}
+                selectedYear={selectedYear}
                 currentPattern={currentPattern}
                 patternStartDate={patternStartDate}
                 exceptions={exceptions}

@@ -172,13 +172,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
   const currentThemeDef = CALENDAR_THEMES.find((ct) => ct.id === calendarTheme) || CALENDAR_THEMES[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+1rem)] px-3 sm:px-6 bg-black/60 dark:bg-black/80 backdrop-blur-md overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-        className="relative w-full max-w-xl bg-card rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden my-auto text-foreground"
+        className="relative w-full max-w-xl bg-card rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 flex flex-col max-h-[calc(100dvh-var(--sat)-var(--sab)-2rem)] overflow-hidden my-auto text-foreground"
       >
         {/* Header with Step indicator and Skip button */}
         <div className="px-4 pt-3 pb-2 sm:px-5 sm:pt-4 sm:pb-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between shrink-0">

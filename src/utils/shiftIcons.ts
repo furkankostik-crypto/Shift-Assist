@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Sun,
   Sunrise,
@@ -192,23 +191,5 @@ export function getShiftIconComponent(
   return SHIFT_ICON_MAP[resolved] || (shiftType === 'REST' ? Coffee : Briefcase);
 }
 
-/**
- * React Component to easily render a shift icon anywhere in the app.
- */
-export interface ShiftIconProps extends React.ComponentPropsWithoutRef<'svg'> {
-  icon?: string;
-  type?: 'WORK' | 'REST';
-  name?: string;
-  className?: string;
-}
-
-export const ShiftIcon: React.FC<ShiftIconProps> = ({
-  icon,
-  type,
-  name,
-  className = 'w-4 h-4',
-  ...props
-}) => {
-  const IconComponent = getShiftIconComponent(icon, type, name);
-  return <IconComponent className={className} {...props} />;
-};
+// Re-export ShiftIcon component and its props for backwards compatibility
+export { ShiftIcon, type ShiftIconProps } from '../components/ShiftIcon';

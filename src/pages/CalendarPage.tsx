@@ -1223,7 +1223,7 @@ const SelectedDayDetailCard = React.memo(
     return (
       <div
         className={`shrink-0 px-3 transition-all duration-200 ease-out ${
-          isOpen ? 'opacity-100 translate-y-0 pb-4' : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
+          isOpen ? 'opacity-100 translate-y-0 pb-[calc(0.5rem+var(--sab))]' : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
         }`}
       >
         <div className="overflow-visible min-h-0">
@@ -2348,10 +2348,10 @@ export const CalendarPage = () => {
       : 'gap-1 sm:gap-1.5 px-1.5 pt-0.5 pb-1 sm:pb-1.5';
 
   return (
-    <div className="py-2 h-full flex flex-col select-none overflow-hidden relative">
+    <div className="pt-1.5 pb-0 h-full flex flex-col select-none overflow-hidden relative">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -2601,6 +2601,8 @@ export const CalendarPage = () => {
         onTouchStart={handleCalendarTouchStart}
         onTouchEnd={handleCalendarTouchEnd}
         className={`relative flex-1 min-h-[280px] overflow-y-auto snap-y snap-mandatory overscroll-y-none touch-pan-y gpu-scroll-container flex flex-col ${
+          !isDayDetailOpen ? 'pb-[var(--sab)]' : ''
+        } ${
           calendarTheme === 'seamless'
             ? 'border-b border-l border-slate-200/70 dark:border-slate-800/70'
             : 'border-b border-slate-200/70 dark:border-slate-800/70'

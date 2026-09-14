@@ -45,7 +45,7 @@ const ShiftTypeItemRow = ({
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try {
         navigator.vibrate(35);
-      } catch (_) {}
+      } catch {}
     }
 
     dragControls.start(e);
@@ -61,7 +61,7 @@ const ShiftTypeItemRow = ({
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try {
         navigator.vibrate(25);
-      } catch (_) {}
+      } catch {}
     }
   };
 

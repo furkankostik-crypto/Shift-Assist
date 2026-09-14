@@ -45,12 +45,12 @@ const Layout = () => {
   }, [theme]);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden pt-[env(safe-area-inset-top,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
+    <div className="flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden pt-[var(--sat)] pl-[var(--sal)] pr-[var(--sar)]">
       {/* Main Content Area: Maximum full-screen height for calendar and views */}
       <main
         className={`flex-1 ${
           isCalendarPage ? 'overflow-hidden' : 'overflow-y-auto'
-        } overflow-x-hidden pb-[env(safe-area-inset-bottom,0px)] overscroll-y-none`}
+        } overflow-x-hidden overscroll-y-none`}
         style={{ overscrollBehaviorY: 'none' }}
       >
         <div className="w-full max-w-3xl mx-auto h-full flex flex-col min-w-0">
@@ -78,7 +78,7 @@ const Layout = () => {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md pointer-events-none"
+            className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md pointer-events-none"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
             <span>{globalToastMessage}</span>

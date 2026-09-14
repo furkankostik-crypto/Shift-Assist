@@ -100,9 +100,9 @@ export const AuthModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+1rem)] px-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className="bg-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative animate-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100"
+        className="bg-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative animate-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 max-h-[calc(100dvh-var(--sat)-var(--sab)-2rem)] overflow-y-auto my-auto"
         role="dialog"
         aria-modal="true"
       >

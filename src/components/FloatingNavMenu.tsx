@@ -130,7 +130,7 @@ export const FloatingNavMenu: React.FC = () => {
       {/* Floating Speed-Dial Cards Container */}
       <div
         ref={menuRef}
-        className="fixed right-3.5 sm:right-6 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-50 flex flex-col items-end pointer-events-none select-none"
+        className="fixed right-3.5 sm:right-6 bottom-[calc(0.75rem+var(--sab))] z-50 flex flex-col items-end pointer-events-none select-none"
       >
         <AnimatePresence>
           {isOpen && (
@@ -139,7 +139,7 @@ export const FloatingNavMenu: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.88, y: 16 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="mb-3 w-[275px] sm:w-[300px] max-h-[82vh] overflow-y-auto bg-card/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-3xl shadow-2xl p-2.5 pointer-events-auto"
+              className="mb-3 w-[275px] sm:w-[300px] max-h-[calc(100dvh-var(--sat)-var(--sab)-5.5rem)] overflow-y-auto bg-card/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-3xl shadow-2xl p-2.5 pointer-events-auto"
             >
               {/* Menu Header / Mini Banner */}
               <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between mb-2">

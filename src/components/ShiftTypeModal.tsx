@@ -145,8 +145,8 @@ export const ShiftTypeModal = ({ shiftType, onClose }: ShiftTypeModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-card w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+1rem)] px-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-card w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200 max-h-[calc(100dvh-var(--sat)-var(--sab)-2rem)] overflow-y-auto my-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between mb-4">
           <div>

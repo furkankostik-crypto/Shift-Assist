@@ -71,7 +71,7 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 30, opacity: 0, scale: 0.97 }}
         transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-        className="relative bg-card w-full max-w-md sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col z-10 overflow-hidden"
+        className="relative bg-card w-full max-w-md sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col z-10 overflow-hidden max-h-[calc(100dvh-var(--sat)-0.75rem)]"
       >
         {/* Mobile drag handle */}
         <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mt-2.5 sm:hidden" />
@@ -100,7 +100,7 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
         </div>
 
         {/* Modal Content - Compact single-screen layout */}
-        <div className="p-3.5 sm:p-4 space-y-3">
+        <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
           {/* 1. ÜSTTE TEK CANLI ÖNİZLEME */}
           <div className="bg-slate-100/80 dark:bg-slate-900/70 rounded-2xl p-2.5 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1.5">
             <div className="flex items-center justify-between px-1">
@@ -234,7 +234,7 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
         </div>
 
         {/* Modal Footer - Compact */}
-        <div className="px-3.5 pb-3.5 pt-1.5 sm:px-4 sm:pb-4 sm:pt-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 shrink-0">
+        <div className="px-3.5 pt-2 pb-[calc(0.75rem+var(--sab))] sm:px-4 sm:pb-4 sm:pt-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 shrink-0">
           <button
             onClick={onClose}
             className="w-full py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-black text-xs sm:text-sm shadow-sm shadow-primary-500/25 active:scale-98 transition-all cursor-pointer"

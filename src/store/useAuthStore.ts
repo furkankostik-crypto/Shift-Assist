@@ -92,7 +92,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
   if (configured && auth) {
     // Mobil yönlendirme sonucunu kontrol et
     getRedirectResult(auth).catch((err) => {
-      console.warn('Redirect auth result error:', err);
+      if (err?.code !== 'auth/operation-not-supported-in-this-environment') {
+        console.warn('Redirect auth result error:', err);
+      }
     });
 
     onAuthStateChanged(auth, async (currentUser) => {

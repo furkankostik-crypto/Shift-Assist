@@ -92,7 +92,7 @@ const SettingsPage = () => {
   const activeThemeDef = CALENDAR_THEMES.find((ct) => ct.id === calendarTheme) || CALENDAR_THEMES[0];
 
   return (
-    <div className="pt-4 px-4 pb-6 sm:pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto space-y-4">
+    <div className="pt-4 px-4 pb-[calc(5rem+var(--sab))] animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto space-y-4">
       {/* Top Quick Back Navigation */}
       <div>
         <Link

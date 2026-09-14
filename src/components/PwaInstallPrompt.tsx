@@ -105,13 +105,13 @@ export const PwaInstallPrompt: React.FC = () => {
           />
 
           {/* Dialog Container */}
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 pointer-events-none">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+0.75rem)] px-3 sm:px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, y: 35, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-2xl pointer-events-auto max-h-[90vh] overflow-y-auto pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]"
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-2xl pointer-events-auto max-h-[calc(100dvh-var(--sat)-var(--sab)-2rem)] overflow-y-auto pb-5"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">

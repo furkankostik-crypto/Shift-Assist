@@ -66,7 +66,7 @@ export const SetPatternStartDateModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+1rem)] px-4 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -82,7 +82,7 @@ export const SetPatternStartDateModal = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.92, opacity: 0, y: 15 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="bg-card dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative z-10 space-y-4"
+          className="bg-card dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative z-10 space-y-4 max-h-[calc(100dvh-var(--sat)-var(--sab)-2rem)] overflow-y-auto my-auto"
         >
           {/* Header */}
           <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">

@@ -163,7 +163,7 @@ const PatternsPage = () => {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-w-0 py-4 px-3 sm:px-4 pb-4 md:pb-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
+    <div className="w-full max-w-full overflow-x-hidden min-w-0 pt-4 px-3 sm:px-4 pb-[calc(5rem+var(--sab))] animate-in fade-in slide-in-from-bottom-4 duration-400">
       {!isCreating ? (
         <>
           {/* Top Quick Back Navigation & Main Page Header */}
@@ -745,7 +745,7 @@ const PatternsPage = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-[calc(5.5rem+var(--sab))] left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
           <div className="bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2 text-xs font-bold border border-slate-700/50 dark:border-slate-300/50 backdrop-blur-md">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
             <span>{toastMessage}</span>

@@ -164,7 +164,7 @@ export const LeavePlannerPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-3 sm:p-4 max-w-4xl mx-auto w-full pb-8 select-none">
+    <div className="flex-1 flex flex-col p-3 sm:p-4 max-w-4xl mx-auto w-full pb-[calc(5rem+var(--sab))] select-none">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -172,7 +172,7 @@ export const LeavePlannerPage: React.FC = () => {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md"
+            className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
             <span>{toastMessage}</span>

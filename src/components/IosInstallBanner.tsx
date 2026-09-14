@@ -55,7 +55,7 @@ export const IosInstallBanner: React.FC = () => {
   return (
     <AnimatePresence>
       {isVisible && (
-        <aside aria-label="iPhone Yükleme Bildirimi" className="fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-40 pointer-events-none pb-[env(safe-area-inset-bottom,0px)]">
+        <aside aria-label="iPhone Yükleme Bildirimi" className="fixed bottom-[calc(0.75rem+var(--sab))] left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-40 pointer-events-none">
           <motion.div
             initial={{ opacity: 0, y: 35, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
