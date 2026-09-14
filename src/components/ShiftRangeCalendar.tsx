@@ -296,6 +296,11 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
                 {format(parsedStartDate, 'd MMM yyyy', { locale: tr })} –{' '}
                 {format(parsedEndDate, 'd MMM yyyy', { locale: tr })} ({leaveSummaryText})
               </span>
+              {customAnalysis?.hasBoundaryAdjustment && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
+                  ⚠️ Düzeltme Önerisi
+                </span>
+              )}
             </div>
           ) : (
             <div className="flex items-center space-x-1.5 font-bold text-slate-500 dark:text-slate-400 truncate">
@@ -403,6 +408,7 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
           return (
             <div
               key={dayStr}
+              data-date={dayStr}
               onClick={() => handleDayClick(day)}
               onMouseEnter={() => setHoveredDate(day)}
               onMouseLeave={() => setHoveredDate(null)}

@@ -17,6 +17,7 @@ import {
   Layers,
   FileText,
   Minimize2,
+  AlertTriangle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -559,10 +560,10 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
         isSummerSeason: customAnalysis.period === 'SUMMER',
         isPriority: true,
         seasonTag: LEAVE_PERIODS_INFO[customAnalysis.period].title,
-        formalStartDate: customAnalysis.formalStartDate,
-        formalEndDate: customAnalysis.formalEndDate,
-        formalStartDateStr: customAnalysis.formalStartDateStr,
-        formalEndDateStr: customAnalysis.formalEndDateStr,
+        formalStartDate: customAnalysis.suggestedStartDate || customAnalysis.formalStartDate,
+        formalEndDate: customAnalysis.suggestedEndDate || customAnalysis.formalEndDate,
+        formalStartDateStr: customAnalysis.suggestedStartDateStr || customAnalysis.formalStartDateStr,
+        formalEndDateStr: customAnalysis.suggestedEndDateStr || customAnalysis.formalEndDateStr,
         vacationStartDate: customAnalysis.vacationStartDate,
         vacationEndDate: customAnalysis.vacationEndDate,
         vacationStartDateStr: customAnalysis.vacationStartDateStr,
@@ -1349,6 +1350,63 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
                       {customAnalysis.totalVacationDays} Gün Kesintisiz Tatil
                     </span>
                   </div>
+
+                  {/* Warning & Auto-Fix Banner */}
+                  {(customAnalysis.hasBoundaryAdjustment || customAnalysis.warningMessage) && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2">
+                      <div className="flex items-start space-x-2.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-1 flex-1">
+                          <p className="font-black text-amber-800 dark:text-amber-300">
+                            Resmi İzin Başlangıç/Bitiş Bilgilendirmesi
+                          </p>
+                          <p className="text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300/90 font-medium">
+                            {customAnalysis.warningMessage ||
+                              'Seçtiğiniz tarih aralığı resmi tatil, pazar veya vardiya istirahat gününe denk gelmektedir. Yıllık izin dilekçeniz ilk fiili çalışma gününden başlatılmalıdır.'}
+                          </p>
+                          {customAnalysis.hasBoundaryAdjustment &&
+                            customAnalysis.suggestedStartDate &&
+                            customAnalysis.suggestedEndDate && (
+                              <p className="text-[11px] font-bold text-amber-800/90 dark:text-amber-300/90">
+                                💡 Mevzuata uygun resmi izin aralığı:{' '}
+                                <span className="font-black underline">
+                                  {format(customAnalysis.suggestedStartDate, 'd MMMM', { locale: dateLocale })} –{' '}
+                                  {format(customAnalysis.suggestedEndDate, 'd MMMM yyyy', { locale: dateLocale })}
+                                </span>
+                              </p>
+                            )}
+                        </div>
+                      </div>
+
+                      {customAnalysis.hasBoundaryAdjustment &&
+                        customAnalysis.suggestedStartDateStr &&
+                        customAnalysis.suggestedEndDateStr && (
+                          <div className="pt-1 flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  customAnalysis.suggestedStartDateStr &&
+                                  customAnalysis.suggestedEndDateStr
+                                ) {
+                                  setLeavePlanningCustomRange(
+                                    customAnalysis.suggestedStartDateStr,
+                                    customAnalysis.suggestedEndDateStr
+                                  );
+                                  showGlobalToast(
+                                    'Tarihler mevzuata uygun resmi izin sınırlarına otomatik düzeltildi! ✨'
+                                  );
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center space-x-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Tarihleri Otomatik Düzelt</span>
+                            </button>
+                          </div>
+                        )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-200">

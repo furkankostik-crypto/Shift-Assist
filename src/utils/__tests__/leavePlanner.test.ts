@@ -149,5 +149,54 @@ describe('leavePlanner - Annual Leave Optimization Engine', () => {
       expect(result.summerWarning).toBeDefined();
       expect(result.summerWarning).toContain('Yaz sezonunda');
     });
+
+    it('should correctly include preceding OFF days when starting on official holiday (D4 team case)', () => {
+      const d4Pattern = createTeamPattern('D4');
+      // User selected 29 Oct 2026 to 2 Nov 2026
+      const start = new Date(2026, 9, 29);
+      const end = new Date(2026, 10, 2);
+
+      const result = calculateCustomLeavePlan(d4Pattern, '2026-01-12', start, end);
+
+      expect(result.hasBoundaryAdjustment).toBe(true);
+      expect(result.suggestedStartDateStr).toBe('2026-10-30');
+      expect(result.suggestedEndDateStr).toBe('2026-11-02');
+      // 27 & 28 Oct are OFF, 29 Oct is Republic Day, 30 Oct - 2 Nov leave, 3-5 Nov are OFF -> 10 days total!
+      expect(result.vacationStartDateStr).toBe('2026-10-27');
+      expect(result.vacationEndDateStr).toBe('2026-11-05');
+      expect(result.totalVacationDays).toBe(10);
+      expect(result.leaveDaysSpent).toBe(3); // 30 Oct, 31 Oct, 2 Nov
+    });
+
+    it('should keep full 10-day vacation span when user accepts suggested dates (30 Oct to 2 Nov)', () => {
+      const d4Pattern = createTeamPattern('D4');
+      // Formally adjusted: 30 Oct 2026 to 2 Nov 2026
+      const start = new Date(2026, 9, 30);
+      const end = new Date(2026, 10, 2);
+
+      const result = calculateCustomLeavePlan(d4Pattern, '2026-01-12', start, end);
+
+      expect(result.hasBoundaryAdjustment).toBe(false);
+      expect(result.vacationStartDateStr).toBe('2026-10-27');
+      expect(result.vacationEndDateStr).toBe('2026-11-05');
+      expect(result.totalVacationDays).toBe(10);
+      expect(result.leaveDaysSpent).toBe(3);
+    });
+
+    it('should handle leave starting on an OFF day and suggest the first work day', () => {
+      const d4Pattern = createTeamPattern('D4');
+      // User picked 27 Oct (which is an OFF day) to 2 Nov
+      const start = new Date(2026, 9, 27);
+      const end = new Date(2026, 10, 2);
+
+      const result = calculateCustomLeavePlan(d4Pattern, '2026-01-12', start, end);
+
+      expect(result.hasBoundaryAdjustment).toBe(true);
+      expect(result.suggestedStartDateStr).toBe('2026-10-30');
+      expect(result.vacationStartDateStr).toBe('2026-10-27');
+      expect(result.vacationEndDateStr).toBe('2026-11-05');
+      expect(result.totalVacationDays).toBe(10);
+      expect(result.leaveDaysSpent).toBe(3);
+    });
   });
 });

@@ -104,6 +104,7 @@ export interface CustomLeaveAnalysis {
   periodInfoMessage?: string;
   warningMessage?: string;
   summerWarning?: string;
+  hasBoundaryAdjustment?: boolean;
   shiftCount: number;
   formalStartDate: Date;
   formalEndDate: Date;
@@ -111,6 +112,8 @@ export interface CustomLeaveAnalysis {
   formalEndDateStr: string;
   suggestedStartDate?: Date;
   suggestedEndDate?: Date;
+  suggestedStartDateStr?: string;
+  suggestedEndDateStr?: string;
   vacationStartDate: Date;
   vacationEndDate: Date;
   vacationStartDateStr: string;
@@ -330,8 +333,8 @@ export function findPrecedingOffDays(
     const shift = getShiftForDate(curr, pattern, patternStartDate);
     const sunday = isSunday(curr);
     const holiday = isOfficialHoliday(curr);
-    // Kesin kural: Vardiya planında WORK olan gün ASLA tatil/off sayılmaz.
-    const isOff = shift ? shift.type === 'REST' : (sunday || holiday);
+    // Vardiyada istirahat (REST), Pazar günü (hafta tatili) veya Resmi Tatil günleri kesintisiz tatil zincirinin parçasıdır.
+    const isOff = (shift ? shift.type === 'REST' : false) || sunday || holiday;
 
     if (isOff) {
       offDays.unshift(new Date(curr));
@@ -359,8 +362,8 @@ export function findSucceedingOffDays(
     const shift = getShiftForDate(curr, pattern, patternStartDate);
     const sunday = isSunday(curr);
     const holiday = isOfficialHoliday(curr);
-    // Kesin kural: Vardiya planında WORK olan gün ASLA tatil/off sayılmaz.
-    const isOff = shift ? shift.type === 'REST' : (sunday || holiday);
+    // Vardiyada istirahat (REST), Pazar günü (hafta tatili) veya Resmi Tatil günleri kesintisiz tatil zincirinin parçasıdır.
+    const isOff = (shift ? shift.type === 'REST' : false) || sunday || holiday;
 
     if (isOff) {
       offDays.push(new Date(curr));
@@ -730,21 +733,32 @@ export function calculateCustomLeavePlan(
     patternStartDate
   );
 
+  let suggestedStartDateStr: string | undefined;
+  let suggestedEndDateStr: string | undefined;
+
   if (adjusted) {
     suggestedStartDate = validStart;
     suggestedEndDate = validEnd;
+    suggestedStartDateStr = formatToFullDateFast(validStart);
+    suggestedEndDateStr = formatToFullDateFast(validEnd);
   }
+
+  // Preceding & Succeeding off days search boundaries:
+  // Even if startDate was adjusted forward (e.g. 29 Oct holiday -> 30 Oct work day),
+  // we must search backwards from startDate so that preceding off days (e.g. 27, 28 Oct) are connected.
+  const searchStart = startDate < validStart ? startDate : validStart;
+  const searchEnd = endDate > validEnd ? endDate : validEnd;
 
   // Vacation span (kesintisiz tatil aralığı: öncesi ve sonrası off günleri)
   const precedingOffs = pattern
-    ? findPrecedingOffDays(validStart, pattern, patternStartDate)
+    ? findPrecedingOffDays(searchStart, pattern, patternStartDate)
     : [];
   const succeedingOffs = pattern
-    ? findSucceedingOffDays(validEnd, pattern, patternStartDate)
+    ? findSucceedingOffDays(searchEnd, pattern, patternStartDate)
     : [];
 
-  const vacationStart = precedingOffs.length > 0 ? precedingOffs[0] : validStart;
-  const vacationEnd = succeedingOffs.length > 0 ? succeedingOffs[succeedingOffs.length - 1] : validEnd;
+  const vacationStart = precedingOffs.length > 0 ? precedingOffs[0] : searchStart;
+  const vacationEnd = succeedingOffs.length > 0 ? succeedingOffs[succeedingOffs.length - 1] : searchEnd;
 
   const vacationDaysInterval = eachDayOfInterval({ start: vacationStart, end: vacationEnd });
   const breakdown: DayBreakdown[] = [];
@@ -799,6 +813,7 @@ export function calculateCustomLeavePlan(
     periodInfoMessage,
     warningMessage,
     summerWarning,
+    hasBoundaryAdjustment: adjusted,
     shiftCount,
     formalStartDate: startDate,
     formalEndDate: endDate,
@@ -806,6 +821,8 @@ export function calculateCustomLeavePlan(
     formalEndDateStr: formatToFullDateFast(endDate),
     suggestedStartDate,
     suggestedEndDate,
+    suggestedStartDateStr,
+    suggestedEndDateStr,
     vacationStartDate: vacationStart,
     vacationEndDate: vacationEnd,
     vacationStartDateStr: formatToFullDateFast(vacationStart),
