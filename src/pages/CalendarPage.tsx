@@ -29,6 +29,8 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
@@ -57,6 +59,7 @@ import {
 import { getShiftIconComponent, ShiftIcon } from '../utils/shiftIcons';
 import { type CalendarThemeId, type ShiftDisplayMode } from '../utils/calendarThemes';
 import { CalendarThemeModal } from '../components/CalendarThemeModal';
+import { QuickTeamSelectorSheet } from '../components/QuickTeamSelectorSheet';
 
 export type LeaveDayRole =
   | 'LEAVE'
@@ -355,9 +358,7 @@ const DayCell = React.memo(
             <span
               className={`transition-colors duration-75 ${
                 isToday
-                  ? !isLoading && (hasShift || isHoliday)
-                    ? 'bg-white text-slate-900 w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-md text-[10px] sm:text-xs font-black'
-                    : 'bg-primary-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-md text-[10px] sm:text-xs font-black'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-md text-[10px] sm:text-xs font-black ring-2 ring-white/50 dark:ring-black/50'
                   : !isLoading && (hasShift || isHoliday)
                   ? 'text-white font-black text-xs sm:text-sm drop-shadow-2xs'
                   : !isCurrentMonth
@@ -523,7 +524,7 @@ const DayCell = React.memo(
             <span
               className={`transition-colors duration-75 ${
                 isToday
-                  ? 'bg-primary-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black ring-2 ring-white/50 dark:ring-black/50'
                   : !isLoading && isHoliday && !hasShift
                   ? 'font-black text-xs sm:text-sm'
                   : !isCurrentMonth
@@ -666,7 +667,7 @@ const DayCell = React.memo(
             <span
               className={`transition-colors duration-75 ${
                 isToday
-                  ? 'bg-primary-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black ring-2 ring-white/50 dark:ring-black/50'
                   : !isCurrentMonth
                   ? 'text-slate-400 dark:text-slate-600 font-bold text-xs sm:text-sm'
                   : 'text-slate-800 dark:text-slate-100 font-black text-xs sm:text-sm'
@@ -796,7 +797,7 @@ const DayCell = React.memo(
             <span
               className={`transition-all ${
                 isToday
-                  ? 'bg-primary-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black ring-2 ring-white/50 dark:ring-black/50'
                   : !isCurrentMonth
                   ? 'text-slate-400 dark:text-slate-600 font-bold text-xs sm:text-sm'
                   : 'text-slate-800 dark:text-slate-200 font-black text-xs sm:text-sm'
@@ -914,7 +915,7 @@ const DayCell = React.memo(
           <span
             className={`transition-colors duration-75 ${
               isToday
-                ? 'bg-primary-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs font-black ring-2 ring-white/50 dark:ring-black/50'
                 : !isCurrentMonth
                 ? 'text-slate-400 dark:text-slate-600 font-bold text-xs sm:text-sm'
                 : 'text-slate-800 dark:text-slate-200 font-black text-xs sm:text-sm'
@@ -1578,6 +1579,7 @@ export const CalendarPage = () => {
 
   const [currentMonthIndex, setCurrentMonthIndex] = useState(PAST_MONTHS);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isTeamSelectorOpen, setIsTeamSelectorOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const dateLocale = i18n.language.startsWith('tr') ? tr : enUS;
@@ -2402,11 +2404,10 @@ export const CalendarPage = () => {
               <span>Bugün</span>
             </button>
           )}
-
-          {currentPattern && (
-            <Link
-              to="/patterns"
-              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/40 text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-primary-300 dark:hover:border-primary-700 transition-all flex items-center space-x-1.5 shadow-2xs shrink-0"
+          {currentPattern ? (
+            <button
+              onClick={() => setIsTeamSelectorOpen(true)}
+              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/40 text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-primary-300 dark:hover:border-primary-700 transition-all flex items-center space-x-1.5 shadow-2xs shrink-0 cursor-pointer"
               title="Aktif Ekip / Düzen Değiştir"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -2417,7 +2418,17 @@ export const CalendarPage = () => {
                   .replace(/\s*ekib[iİ]/gi, '')
                   .trim() || currentPattern.name}
               </span>
-            </Link>
+              <ChevronDown className="w-3 h-3 opacity-60" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsTeamSelectorOpen(true)}
+              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-primary-500/10 hover:bg-primary-500/20 text-primary-700 dark:text-primary-300 border border-primary-200/50 dark:border-primary-800/50 transition-all flex items-center space-x-1 shadow-2xs shrink-0 cursor-pointer animate-pulse"
+              title="Ekip / Düzen Seç"
+            >
+              <Users className="w-3 h-3 shrink-0" />
+              <span>Ekip Seç</span>
+            </button>
           )}
         </div>
 
@@ -2669,6 +2680,15 @@ export const CalendarPage = () => {
       <CalendarThemeModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
+      />
+
+      <QuickTeamSelectorSheet
+        isOpen={isTeamSelectorOpen}
+        onClose={() => setIsTeamSelectorOpen(false)}
+        onPatternChanged={(name) => {
+          setToastMessage(`${name} takvime uygulandı! 🎉`);
+          setTimeout(() => setToastMessage(null), 3000);
+        }}
       />
     </div>
   );

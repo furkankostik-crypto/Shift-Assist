@@ -22,11 +22,17 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   RotateCcw,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import type { ShiftPattern, ShiftException, ShiftType, ShiftDay } from '../db/db';
 import { getShiftForDate } from '../utils/shiftLogic';
 import { getHolidayDetail, formatToFullDateFast } from '../utils/holidays';
-import type { CustomLeaveAnalysis } from '../utils/leavePlanner';
+import {
+  isValidLeaveBoundary,
+  isOfficialHoliday,
+  type CustomLeaveAnalysis,
+} from '../utils/leavePlanner';
 
 interface ShiftRangeCalendarProps {
   startDateStr: string;
@@ -203,6 +209,24 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
     return `${selectedRangeDaysCount} Gün`;
   }, [parsedStartDate, parsedEndDate, isSelectingEnd, customAnalysis, selectedRangeDaysCount]);
 
+  // Boundary validity checks (senelik izin Pazar veya Resmi Tatilde başlayamaz ve bitemez)
+  const isStartSunday = parsedStartDate ? isSunday(parsedStartDate) : false;
+  const isStartOfficial = parsedStartDate ? isOfficialHoliday(parsedStartDate) : false;
+  const isStartInvalid = Boolean(parsedStartDate && !isValidLeaveBoundary(parsedStartDate));
+
+  const isEndSunday = parsedEndDate && !isSelectingEnd ? isSunday(parsedEndDate) : false;
+  const isEndOfficial = parsedEndDate && !isSelectingEnd ? isOfficialHoliday(parsedEndDate) : false;
+  const isEndInvalid = Boolean(parsedEndDate && !isSelectingEnd && !isValidLeaveBoundary(parsedEndDate));
+
+  const hasAnyInvalidBoundary = isStartInvalid || isEndInvalid;
+
+  const suggestedStartStr = customAnalysis?.hasBoundaryAdjustment
+    ? customAnalysis.suggestedStartDateStr
+    : undefined;
+  const suggestedEndStr = customAnalysis?.hasBoundaryAdjustment
+    ? customAnalysis.suggestedEndDateStr
+    : undefined;
+
   return (
     <div className="bg-card rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden select-none">
       {/* 1. Header Toolbar */}
@@ -274,11 +298,19 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
       </div>
 
       {/* 2. Interactive Selection Status Banner */}
-      <div className="px-3 sm:px-4 py-2 bg-primary-500/5 dark:bg-primary-500/10 border-b border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div
+        className={`px-3 sm:px-4 py-2.5 border-b transition-colors flex flex-wrap items-center justify-between gap-2 text-xs ${
+          hasAnyInvalidBoundary
+            ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-200 dark:border-rose-900/50'
+            : 'bg-primary-500/5 dark:bg-primary-500/10 border-slate-100 dark:border-slate-800/80'
+        }`}
+      >
         <div className="flex items-center space-x-2 min-w-0">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
-              isSelectingEnd
+              hasAnyInvalidBoundary
+                ? 'bg-rose-500 animate-ping'
+                : isSelectingEnd
                 ? 'bg-amber-500 animate-ping'
                 : parsedStartDate && parsedEndDate
                 ? 'bg-emerald-500'
@@ -286,22 +318,44 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
             }`}
           />
           {isSelectingEnd ? (
-            <span className="font-extrabold text-amber-700 dark:text-amber-300 truncate">
-              📍 Başlangıç: {parsedStartDate ? format(parsedStartDate, 'd MMMM', { locale: tr }) : ''} — Şimdi <span className="underline decoration-amber-400 font-black">Bitiş Gününü</span> seçin (veya +5g, +7g tıklayın)
-            </span>
-          ) : parsedStartDate && parsedEndDate ? (
-            <div className="flex items-center space-x-1.5 font-extrabold text-slate-800 dark:text-slate-200 truncate">
-              <span>Seçili İzin:</span>
-              <span className="text-primary-600 dark:text-primary-400 font-black">
-                {format(parsedStartDate, 'd MMM yyyy', { locale: tr })} –{' '}
-                {format(parsedEndDate, 'd MMM yyyy', { locale: tr })} ({leaveSummaryText})
-              </span>
-              {customAnalysis?.hasBoundaryAdjustment && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
-                  ⚠️ Düzeltme Önerisi
+            isStartInvalid ? (
+              <div className="flex items-center space-x-1.5 font-black text-rose-700 dark:text-rose-300">
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>
+                  ⚠️ Başlangıç {isStartSunday ? 'Pazar gününe' : 'Resmi Tatil gününe'} denk geliyor! İzin bu günde başlatılamaz.
                 </span>
-              )}
-            </div>
+              </div>
+            ) : (
+              <span className="font-extrabold text-amber-700 dark:text-amber-300 truncate">
+                📍 Başlangıç: {parsedStartDate ? format(parsedStartDate, 'd MMMM', { locale: tr }) : ''} — Şimdi <span className="underline decoration-amber-400 font-black">Bitiş Gününü</span> seçin (veya +5g, +7g tıklayın)
+              </span>
+            )
+          ) : parsedStartDate && parsedEndDate ? (
+            hasAnyInvalidBoundary ? (
+              <div className="flex items-center space-x-1.5 font-extrabold text-rose-700 dark:text-rose-300">
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>
+                  ⚠️ {isStartInvalid && isEndInvalid
+                    ? 'Başlangıç ve bitiş günleri resmi mevzuata uygun değildir (Pazar/Tatil)!'
+                    : isStartInvalid
+                    ? `İzin başlangıcı (${isStartSunday ? 'Pazar' : isStartOfficial ? 'Resmi Tatil' : 'Geçersiz Gün'}) mevzuata aykırıdır!`
+                    : `İzin bitişi (${isEndSunday ? 'Pazar' : isEndOfficial ? 'Resmi Tatil' : 'Geçersiz Gün'}) mevzuata aykırıdır!`}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1.5 font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                <span>Seçili İzin:</span>
+                <span className="text-primary-600 dark:text-primary-400 font-black">
+                  {format(parsedStartDate, 'd MMM yyyy', { locale: tr })} –{' '}
+                  {format(parsedEndDate, 'd MMM yyyy', { locale: tr })} ({leaveSummaryText})
+                </span>
+                {customAnalysis?.hasBoundaryAdjustment && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
+                    ⚠️ Düzeltme Önerisi
+                  </span>
+                )}
+              </div>
+            )
           ) : (
             <div className="flex items-center space-x-1.5 font-bold text-slate-500 dark:text-slate-400 truncate">
               <span>🗓️</span>
@@ -310,17 +364,28 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
           )}
         </div>
 
-        {/* Informative helper pill */}
-        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hidden sm:flex items-center space-x-1">
-          <span>💡</span>
-          <span>
-            {isSelectingEnd
-              ? 'Bitiş gününe tıklayın veya hızlı sürelere basın'
-              : parsedStartDate && parsedEndDate
-              ? 'Yeni aralık için takvime tıklayabilirsiniz'
-              : 'Hesaplama için takvimde bir güne tıklayın'}
-          </span>
-        </div>
+        {/* Quick auto fix button on banner if adjustment exists */}
+        {hasAnyInvalidBoundary && suggestedStartStr && suggestedEndStr ? (
+          <button
+            type="button"
+            onClick={() => onRangeChange(suggestedStartStr, suggestedEndStr)}
+            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black flex items-center space-x-1 cursor-pointer shadow-xs active:scale-95 transition-all shrink-0"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>Mevzuata Göre Düzelt</span>
+          </button>
+        ) : (
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hidden sm:flex items-center space-x-1">
+            <span>💡</span>
+            <span>
+              {isSelectingEnd
+                ? 'Bitiş gününe tıklayın veya hızlı sürelere basın'
+                : parsedStartDate && parsedEndDate
+                ? 'Yeni aralık için takvime tıklayabilirsiniz'
+                : 'Hesaplama için takvimde bir güne tıklayın'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 3. Days of Week Header */}
@@ -362,6 +427,20 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
           // Selection matching
           const isStart = Boolean(parsedStartDate && isSameDay(day, parsedStartDate));
           const isEnd = Boolean(!isSelectingEnd && parsedEndDate && isSameDay(day, parsedEndDate));
+
+          // Suggested boundary matching (for when current selection is invalid)
+          const isSuggestedStart = Boolean(
+            suggestedStartStr &&
+            dayStr === suggestedStartStr &&
+            !isStart &&
+            isStartInvalid
+          );
+          const isSuggestedEnd = Boolean(
+            suggestedEndStr &&
+            dayStr === suggestedEndStr &&
+            !isEnd &&
+            isEndInvalid
+          );
 
           // In-between calculation
           let isInSelectedRange = false;
@@ -434,21 +513,42 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
                     ? '!bg-emerald-500/10 dark:!bg-emerald-500/15 border-y border-dashed border-emerald-500/40'
                     : ''
                 }
-                ${isStart ? 'ring-2 ring-primary-500 z-20 rounded-l-xl shadow-xs' : ''}
-                ${isEnd ? 'ring-2 ring-primary-500 z-20 rounded-r-xl shadow-xs' : ''}
+                ${
+                  isStart
+                    ? isStartInvalid
+                      ? 'ring-2 ring-rose-500 !bg-rose-500/20 dark:!bg-rose-500/30 z-20 rounded-l-xl shadow-md shadow-rose-500/20'
+                      : 'ring-2 ring-primary-500 z-20 rounded-l-xl shadow-xs'
+                    : ''
+                }
+                ${
+                  isEnd
+                    ? isEndInvalid
+                      ? 'ring-2 ring-rose-500 !bg-rose-500/20 dark:!bg-rose-500/30 z-20 rounded-r-xl shadow-md shadow-rose-500/20'
+                      : 'ring-2 ring-primary-500 z-20 rounded-r-xl shadow-xs'
+                    : ''
+                }
                 ${isStart && isEnd ? '!rounded-xl' : ''}
+                ${
+                  isSuggestedStart || isSuggestedEnd
+                    ? 'ring-2 ring-dashed ring-amber-500 dark:ring-amber-400 !bg-amber-500/10 z-15 rounded-xl'
+                    : ''
+                }
               `}
             >
               {/* Day Number and Today Indicator */}
               <div className="flex items-center justify-between w-full leading-none">
                 <span
                   className={`text-xs sm:text-sm font-black transition-all ${
-                    isStart || isEnd
+                    isStart && isStartInvalid
+                      ? 'bg-rose-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs animate-pulse ring-2 ring-rose-300 dark:ring-rose-800'
+                      : isEnd && isEndInvalid
+                      ? 'bg-rose-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs animate-pulse ring-2 ring-rose-300 dark:ring-rose-800'
+                      : isStart || isEnd
                       ? 'bg-primary-600 text-white w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full flex items-center justify-center shadow-xs text-[10px] sm:text-xs'
                       : isToday
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 rounded-full flex items-center justify-center text-[10.5px] font-black'
-                      : isStart || isEnd
-                      ? 'text-primary-600 dark:text-primary-400'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-5 h-5 rounded-full flex items-center justify-center text-[10.5px] font-black ring-2 ring-white/50 dark:ring-black/50'
+                      : isSuggestedStart || isSuggestedEnd
+                      ? 'text-amber-600 dark:text-amber-400 underline font-black'
                       : isSun
                       ? 'text-rose-600 dark:text-rose-400'
                       : isCurrMonth
@@ -518,13 +618,47 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
 
               {/* Start / End Floating Badges */}
               {isStart && (
-                <div className="absolute -top-2 left-1 bg-primary-600 text-white font-black text-[7.5px] sm:text-[8px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30">
-                  {isStart && isEnd ? '1 Gün İzin' : 'İzin Başı'}
+                <div
+                  className={`absolute -top-2 left-1 text-white font-black text-[7.5px] sm:text-[8px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30 ${
+                    isStartInvalid
+                      ? 'bg-rose-600 shadow-rose-600/30 animate-pulse'
+                      : 'bg-primary-600'
+                  }`}
+                >
+                  {isStartInvalid
+                    ? isStartSunday
+                      ? '⚠️ Pazar Başlayamaz'
+                      : '⚠️ Tatilde Başlayamaz'
+                    : isStart && isEnd
+                    ? '1 Gün İzin'
+                    : 'İzin Başı'}
                 </div>
               )}
               {isEnd && !isStart && (
-                <div className="absolute -top-2 right-1 bg-primary-600 text-white font-black text-[7.5px] sm:text-[8px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30">
-                  İzin Sonu
+                <div
+                  className={`absolute -top-2 right-1 text-white font-black text-[7.5px] sm:text-[8px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30 ${
+                    isEndInvalid
+                      ? 'bg-rose-600 shadow-rose-600/30 animate-pulse'
+                      : 'bg-primary-600'
+                  }`}
+                >
+                  {isEndInvalid
+                    ? isEndSunday
+                      ? '⚠️ Pazar Bitemez'
+                      : '⚠️ Tatilde Bitemez'
+                    : 'İzin Sonu'}
+                </div>
+              )}
+
+              {/* Suggested boundary ghost indicator badges */}
+              {isSuggestedStart && (
+                <div className="absolute -top-2 left-1 bg-amber-500 text-slate-950 font-black text-[7px] sm:text-[7.5px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30 animate-bounce">
+                  💡 Önerilen Başlangıç
+                </div>
+              )}
+              {isSuggestedEnd && (
+                <div className="absolute -top-2 right-1 bg-amber-500 text-slate-950 font-black text-[7px] sm:text-[7.5px] px-1 py-0.2 rounded-xs shadow-xs uppercase tracking-tight z-30 animate-bounce">
+                  💡 Önerilen Bitiş
                 </div>
               )}
             </div>
@@ -555,6 +689,20 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
             <span className="w-3 h-3 rounded-md bg-blue-500/20 border border-blue-500/50" />
             <span>Pazar (Düşmez)</span>
           </div>
+
+          {hasAnyInvalidBoundary && (
+            <div className="flex items-center space-x-1.5 text-rose-600 dark:text-rose-400 font-black">
+              <span className="w-3 h-3 rounded-md bg-rose-500 ring-2 ring-rose-300 dark:ring-rose-800" />
+              <span>Hatalı Seçim</span>
+            </div>
+          )}
+
+          {customAnalysis?.hasBoundaryAdjustment && (
+            <div className="flex items-center space-x-1.5 text-amber-600 dark:text-amber-400 font-black">
+              <span className="w-3 h-3 rounded-md border-2 border-dashed border-amber-500 bg-amber-500/20" />
+              <span>Önerilen Gün</span>
+            </div>
+          )}
         </div>
 
         {/* Selected Date Range Jump Action */}
