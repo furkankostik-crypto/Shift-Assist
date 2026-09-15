@@ -344,6 +344,10 @@ const DayCell = React.memo(
                 ? !isLoading && (hasShift || isHoliday)
                   ? 'ring-2.5 ring-inset ring-white z-30 shadow-md !opacity-100'
                   : 'ring-2.5 ring-inset ring-primary-500 dark:ring-primary-400 z-30 shadow-md !opacity-100'
+                : isToday
+                ? !isLoading && (hasShift || isHoliday)
+                  ? 'ring-2 ring-inset ring-white z-20 shadow-sm'
+                  : 'ring-2 ring-inset ring-primary-500 dark:ring-primary-400 z-20 shadow-sm'
                 : ''
             }
           `}
