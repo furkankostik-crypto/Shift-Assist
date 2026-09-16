@@ -19,6 +19,8 @@ import {
   type ShiftDisplayMode,
 } from '../utils/calendarThemes';
 
+import { ShiftTypesTab } from './ShiftTypesTab';
+
 interface CalendarThemeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,6 +53,8 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
     shiftDisplayMode,
     setShiftDisplayMode,
   } = useAppStore();
+
+  const [activeTab, setActiveTab] = React.useState<'layout' | 'styles'>('layout');
 
   if (!isOpen) return null;
 
@@ -98,9 +102,39 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+        
+        {/* Tab Selector */}
+        <div className="flex p-1.5 mx-4 mt-2 bg-slate-100 dark:bg-slate-900/60 rounded-2xl shrink-0 border border-slate-200/60 dark:border-slate-800 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveTab('layout')}
+            className={`flex-1 py-2 px-3 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              activeTab === 'layout'
+                ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-md ring-1 ring-slate-200 dark:ring-slate-600'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <Palette className={activeTab === 'layout' ? 'w-4 h-4' : 'w-4 h-4 opacity-70'} />
+            <span>Takvim Düzeni</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('styles')}
+            className={`flex-1 py-2 px-3 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              activeTab === 'styles'
+                ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-md ring-1 ring-slate-200 dark:ring-slate-600'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <CalendarHeart className={activeTab === 'styles' ? 'w-4 h-4' : 'w-4 h-4 opacity-70'} />
+            <span>Vardiya Stilleri</span>
+          </button>
+        </div>
 
         {/* Modal Content - Compact single-screen layout */}
         <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
+          {activeTab === 'layout' ? (
+            <>
           {/* 1. ÜSTTE TEK CANLI ÖNİZLEME */}
           <div className="bg-slate-100/80 dark:bg-slate-900/70 rounded-2xl p-2.5 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1.5">
             <div className="flex items-center justify-between px-1">
@@ -149,7 +183,7 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
                     className={`p-1.5 rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center relative select-none touch-manipulation ${
                       isSelected
                         ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 font-black shadow-xs ring-1 ring-primary-500/30 scale-[1.02]'
-                        : 'border-slate-200/80 dark:border-slate-800 bg-card hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
+                        : 'border-slate-200/80 dark:border-slate-800 bg-card hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                     }`}
                   >
                     <div
@@ -203,7 +237,7 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
                     className={`p-1.5 rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center relative select-none touch-manipulation ${
                       isSelected
                         ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 font-black shadow-xs ring-1 ring-primary-500/30 scale-[1.02]'
-                        : 'border-slate-200/80 dark:border-slate-800 bg-card hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
+                        : 'border-slate-200/80 dark:border-slate-800 bg-card hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                     }`}
                   >
                     <div
@@ -231,6 +265,12 @@ export const CalendarThemeModal: React.FC<CalendarThemeModalProps> = ({
               {t(activeModeDef.descKey, activeModeDef.descFallback)}
             </p>
           </div>
+          </>
+          ) : (
+            <div className="-mx-2 -mt-2">
+              <ShiftTypesTab />
+            </div>
+          )}
         </div>
 
         {/* Modal Footer - Compact */}

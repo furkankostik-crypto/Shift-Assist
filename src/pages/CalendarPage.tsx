@@ -344,21 +344,22 @@ const DayCell = React.memo(
                 ? !isLoading && (hasShift || isHoliday)
                   ? 'ring-2.5 ring-inset ring-white z-30 shadow-md !opacity-100'
                   : 'ring-2.5 ring-inset ring-primary-500 dark:ring-primary-400 z-30 shadow-md !opacity-100'
-                : isToday
-                ? !isLoading && (hasShift || isHoliday)
-                  ? 'ring-2 ring-inset ring-white z-20 shadow-sm'
-                  : 'ring-2 ring-inset ring-primary-500 dark:ring-primary-400 z-20 shadow-sm'
                 : ''
             }
           `}
         >
+          {/* Today Frame Overlay */}
+          {isToday && (
+            <div className="absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0" />
+          )}
+
           {/* Leave Outer Frame Overlay */}
           {hasLeaveVisual && leaveVisual && (
             <LeaveFrameOverlay visual={leaveVisual} vacationColor={customVacationColor} />
           )}
 
           {/* Top Row */}
-          <div className="absolute top-0.5 w-full flex items-center justify-between px-0.5 z-10 leading-none">
+          <div className={`absolute w-full flex items-center justify-between z-10 leading-none ${isToday ? 'top-[5px] px-[5px]' : 'top-0.5 px-0.5'}`}>
             <span
               className={`transition-colors duration-75 ${
                 isToday
@@ -490,6 +491,11 @@ const DayCell = React.memo(
             }
           `}
         >
+          {/* Today Frame Overlay */}
+          {isToday && (
+            <div className={`absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0 ${hasLeaveVisual && leaveVisual?.isRowStart ? 'rounded-l-2xl' : 'rounded-l-lg sm:rounded-l-xl'} ${hasLeaveVisual && leaveVisual?.isRowEnd ? 'rounded-r-2xl' : 'rounded-r-lg sm:rounded-r-xl'}`} />
+          )}
+
           {/* Precise Corner Badges ONLY on exact start and end dates */}
           {leaveVisual?.isVacationStart ? (
             <span
@@ -666,6 +672,11 @@ const DayCell = React.memo(
             }
           `}
         >
+          {/* Today Frame Overlay */}
+          {isToday && (
+            <div className="absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0 rounded-xl sm:rounded-2xl" />
+          )}
+
           {/* Top Row */}
           <div className="absolute top-1 w-full flex items-center justify-between px-0.5 z-10 leading-none">
             <span
@@ -788,6 +799,11 @@ const DayCell = React.memo(
             }
           `}
         >
+          {/* Today Frame Overlay */}
+          {isToday && (
+            <div className="absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0 rounded-xl" />
+          )}
+
           {/* Left Vertical Accent Bar */}
           {!isLoading && (hasShift || hasLeaveVisual) && (
             <div
@@ -2357,7 +2373,7 @@ export const CalendarPage = () => {
     <div className="pt-1.5 pb-0 h-full flex flex-col select-none overflow-hidden relative">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-[70] bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
         </div>

@@ -91,4 +91,64 @@ describe('ShiftRangeCalendar - Date Range Picker & Interactive Calendar', () => 
 
     expect(onRangeChange).toHaveBeenCalledWith('', '');
   });
+
+  it('highlights invalid start date on Sunday with warning badge and banner', () => {
+    const onRangeChange = vi.fn();
+
+    // 2026-09-20 is Sunday
+    render(
+      <ShiftRangeCalendar
+        startDateStr="2026-09-20"
+        endDateStr="2026-09-24"
+        onRangeChange={onRangeChange}
+        selectedYear={2026}
+        currentPattern={d1Pattern}
+        patternStartDate="2026-01-12"
+      />
+    );
+
+    // Should display warning badge on the cell
+    expect(screen.getByText('⚠️ Pazar Başlayamaz')).toBeInTheDocument();
+    // Should display warning in legend
+    expect(screen.getByText('Hatalı Seçim')).toBeInTheDocument();
+  });
+
+  it('renders suggested start date when customAnalysis has boundary adjustment', () => {
+    const onRangeChange = vi.fn();
+
+    const mockAnalysis: any = {
+      isValid: false,
+      period: 'WINTER_2',
+      hasBoundaryAdjustment: true,
+      suggestedStartDateStr: '2026-09-19',
+      suggestedEndDateStr: '2026-09-24',
+      formalStartDateStr: '2026-09-19',
+      formalEndDateStr: '2026-09-24',
+      formalStartDate: new Date(2026, 8, 19),
+      formalEndDate: new Date(2026, 8, 24),
+      vacationStartDateStr: '2026-09-17',
+      vacationEndDateStr: '2026-09-26',
+      vacationStartDate: new Date(2026, 8, 17),
+      vacationEndDate: new Date(2026, 8, 26),
+      leaveDaysSpent: 5,
+      totalVacationDays: 10,
+      efficiencyMultiplier: 2.0,
+      breakdown: [],
+    };
+
+    render(
+      <ShiftRangeCalendar
+        startDateStr="2026-09-20"
+        endDateStr="2026-09-24"
+        onRangeChange={onRangeChange}
+        selectedYear={2026}
+        currentPattern={d1Pattern}
+        patternStartDate="2026-01-12"
+        customAnalysis={mockAnalysis}
+      />
+    );
+
+    // Should show ghost badge on 19th
+    expect(screen.getByText('💡 Önerilen Başlangıç')).toBeInTheDocument();
+  });
 });

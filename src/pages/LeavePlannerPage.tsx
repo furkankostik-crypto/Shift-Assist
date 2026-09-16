@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSunday } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import {
   Palmtree,
@@ -24,6 +24,7 @@ import {
   LEAVE_PERIODS_INFO,
   type LeavePeriod,
 } from '../utils/leavePlanner';
+import { isOfficialHoliday } from '../utils/holidays';
 import { LeaveBalancesSummary } from '../components/LeaveBalancesSummary';
 
 interface SavedLeaveGroup {
@@ -33,6 +34,7 @@ interface SavedLeaveGroup {
   startDateStr: string;
   endDateStr: string;
   dayCount: number;
+  deductibleDays: number;
   period: LeavePeriod;
   exceptions: ShiftException[];
 }
@@ -103,6 +105,10 @@ export const LeavePlannerPage: React.FC = () => {
         } else {
           const sDate = parseISO(currentGroup[0].date);
           const eDate = parseISO(currentGroup[currentGroup.length - 1].date);
+          const deductible = currentGroup.filter((ex) => {
+            const d = parseISO(ex.date);
+            return !isSunday(d) && !isOfficialHoliday(d);
+          }).length;
           groups.push({
             id: currentGroup[0].id,
             startDate: sDate,
@@ -110,6 +116,7 @@ export const LeavePlannerPage: React.FC = () => {
             startDateStr: currentGroup[0].date,
             endDateStr: currentGroup[currentGroup.length - 1].date,
             dayCount: currentGroup.length,
+            deductibleDays: deductible,
             period: getLeavePeriod(sDate),
             exceptions: [...currentGroup],
           });
@@ -121,6 +128,10 @@ export const LeavePlannerPage: React.FC = () => {
     if (currentGroup.length > 0) {
       const sDate = parseISO(currentGroup[0].date);
       const eDate = parseISO(currentGroup[currentGroup.length - 1].date);
+      const deductible = currentGroup.filter((ex) => {
+        const d = parseISO(ex.date);
+        return !isSunday(d) && !isOfficialHoliday(d);
+      }).length;
       groups.push({
         id: currentGroup[0].id,
         startDate: sDate,
@@ -128,6 +139,7 @@ export const LeavePlannerPage: React.FC = () => {
         startDateStr: currentGroup[0].date,
         endDateStr: currentGroup[currentGroup.length - 1].date,
         dayCount: currentGroup.length,
+        deductibleDays: deductible,
         period: getLeavePeriod(sDate),
         exceptions: [...currentGroup],
       });
@@ -314,7 +326,7 @@ export const LeavePlannerPage: React.FC = () => {
             {selectedYear} Yılı Planlı İzinleriniz
           </h3>
           <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-            {savedVacationsInYear.length} Gün
+            {savedLeaveGroups.reduce((sum, g) => sum + g.deductibleDays, 0)} Gün İzin
           </span>
         </div>
 
@@ -335,7 +347,7 @@ export const LeavePlannerPage: React.FC = () => {
           {(['WINTER_1', 'SUMMER', 'WINTER_2'] as LeavePeriod[]).map((periodKey) => {
             const groupsInPeriod = savedLeaveGroups.filter((g) => g.period === periodKey);
             const periodInfo = LEAVE_PERIODS_INFO[periodKey];
-            const totalPeriodDays = groupsInPeriod.reduce((sum, g) => sum + g.dayCount, 0);
+            const totalPeriodDays = groupsInPeriod.reduce((sum, g) => sum + g.deductibleDays, 0);
 
             return (
               <div
@@ -384,7 +396,7 @@ export const LeavePlannerPage: React.FC = () => {
                               {format(grp.endDate, 'd MMMM yyyy', { locale: dateLocale })}
                             </span>
                             <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-500/30">
-                              {grp.dayCount} Gün İzin
+                              {grp.deductibleDays} Gün İzin {grp.dayCount > grp.deductibleDays ? `(${grp.dayCount} Gün Takvim)` : ''}
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">

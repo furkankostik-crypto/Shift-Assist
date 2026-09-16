@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, parseISO, type Locale, addDays } from 'date-fns';
+import { format, parseISO, type Locale, addDays, isSunday } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import {
   Sparkles,
@@ -32,6 +32,7 @@ import {
   type LeaveOpportunity,
   type LeavePeriod,
   type DayBreakdown,
+  isValidLeaveBoundary,
 } from '../utils/leavePlanner';
 import { formatToFullDateFast } from '../utils/holidays';
 import { ShiftRangeCalendar } from './ShiftRangeCalendar';
@@ -493,6 +494,27 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
     }
   }, [customStartDateStr, customEndDateStr, currentPattern, patternStartDate]);
 
+  const analysisRef = useRef<HTMLDivElement>(null);
+
+  const scrollToAnalysis = () => {
+    analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const manualParsedStartDate = useMemo(() => {
+    try {
+      const d = parseISO(customStartDateStr);
+      return isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  }, [customStartDateStr]);
+
+  const isManualStartSunday = manualParsedStartDate ? isSunday(manualParsedStartDate) : false;
+  const isManualStartInvalid = Boolean(
+    manualParsedStartDate && !isValidLeaveBoundary(manualParsedStartDate)
+  );
+  const isManualSelectingEnd = Boolean(manualParsedStartDate && !customEndDateStr);
+
   const handleApplyOpportunity = async (opp: LeaveOpportunity) => {
     try {
       await applyLeaveOpportunityToCalendar(opp);
@@ -551,33 +573,49 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
   const handleApplyCustomLeave = async () => {
     if (!customAnalysis) return;
     try {
+      let finalAnalysis = customAnalysis;
+      if (
+        customAnalysis.hasBoundaryAdjustment &&
+        customAnalysis.suggestedStartDate &&
+        customAnalysis.suggestedEndDate
+      ) {
+        finalAnalysis = calculateCustomLeavePlan(
+          currentPattern || null,
+          patternStartDate || '',
+          customAnalysis.suggestedStartDate,
+          customAnalysis.suggestedEndDate
+        );
+      }
+
       const oppLike: LeaveOpportunity = {
         id: 'custom',
         title: 'Özel Yıllık İzin',
         category: 'SHIFT_BLOCK',
-        period: customAnalysis.period,
-        shiftCount: customAnalysis.shiftCount >= 2 ? 2 : 1,
-        isSummerSeason: customAnalysis.period === 'SUMMER',
+        period: finalAnalysis.period,
+        shiftCount: finalAnalysis.shiftCount >= 2 ? 2 : 1,
+        isSummerSeason: finalAnalysis.period === 'SUMMER',
         isPriority: true,
-        seasonTag: LEAVE_PERIODS_INFO[customAnalysis.period].title,
-        formalStartDate: customAnalysis.suggestedStartDate || customAnalysis.formalStartDate,
-        formalEndDate: customAnalysis.suggestedEndDate || customAnalysis.formalEndDate,
-        formalStartDateStr: customAnalysis.suggestedStartDateStr || customAnalysis.formalStartDateStr,
-        formalEndDateStr: customAnalysis.suggestedEndDateStr || customAnalysis.formalEndDateStr,
-        vacationStartDate: customAnalysis.vacationStartDate,
-        vacationEndDate: customAnalysis.vacationEndDate,
-        vacationStartDateStr: customAnalysis.vacationStartDateStr,
-        vacationEndDateStr: customAnalysis.vacationEndDateStr,
-        leaveDaysSpent: customAnalysis.leaveDaysSpent,
-        totalVacationDays: customAnalysis.totalVacationDays,
-        efficiencyMultiplier: customAnalysis.efficiencyMultiplier,
-        savedFreeDays: customAnalysis.totalVacationDays - customAnalysis.leaveDaysSpent,
+        seasonTag: LEAVE_PERIODS_INFO[finalAnalysis.period].title,
+        formalStartDate: finalAnalysis.formalStartDate,
+        formalEndDate: finalAnalysis.formalEndDate,
+        formalStartDateStr: finalAnalysis.formalStartDateStr,
+        formalEndDateStr: finalAnalysis.formalEndDateStr,
+        vacationStartDate: finalAnalysis.vacationStartDate,
+        vacationEndDate: finalAnalysis.vacationEndDate,
+        vacationStartDateStr: finalAnalysis.vacationStartDateStr,
+        vacationEndDateStr: finalAnalysis.vacationEndDateStr,
+        leaveDaysSpent: finalAnalysis.leaveDaysSpent,
+        totalVacationDays: finalAnalysis.totalVacationDays,
+        efficiencyMultiplier: finalAnalysis.efficiencyMultiplier,
+        savedFreeDays: finalAnalysis.totalVacationDays - finalAnalysis.leaveDaysSpent,
         holidayNames: [],
-        breakdown: customAnalysis.breakdown,
+        breakdown: finalAnalysis.breakdown,
       };
       await applyLeaveOpportunityToCalendar(oppLike);
       closeLeavePlanning();
-      const msg = 'Özel izin takviminize başarıyla kaydedildi! 🎉';
+      const msg = customAnalysis.hasBoundaryAdjustment
+        ? 'İzniniz mevzuata ve vardiyanıza uygun resmi izin sınırlarına göre takviminize kaydedildi! ✨'
+        : 'Özel izin takviminize başarıyla kaydedildi! 🎉';
       showGlobalToast(msg);
       props.onLeaveApplied?.(msg);
       props.onClose?.();
@@ -1338,7 +1376,10 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
 
               {/* Analysis Result Box */}
               {customAnalysis ? (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div
+                  ref={analysisRef}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
+                >
                   <div className="flex items-center justify-between border-b-2 border-slate-100 dark:border-slate-800 pb-2">
                     <div className="flex items-center space-x-2">
                       <Calculator className="w-4 h-4 text-primary-500" />
@@ -1351,62 +1392,6 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
                     </span>
                   </div>
 
-                  {/* Warning & Auto-Fix Banner */}
-                  {(customAnalysis.hasBoundaryAdjustment || customAnalysis.warningMessage) && (
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2">
-                      <div className="flex items-start space-x-2.5">
-                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                        <div className="text-xs space-y-1 flex-1">
-                          <p className="font-black text-amber-800 dark:text-amber-300">
-                            Resmi İzin Başlangıç/Bitiş Bilgilendirmesi
-                          </p>
-                          <p className="text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-300/90 font-medium">
-                            {customAnalysis.warningMessage ||
-                              'Seçtiğiniz tarih aralığı resmi tatil, pazar veya vardiya istirahat gününe denk gelmektedir. Yıllık izin dilekçeniz ilk fiili çalışma gününden başlatılmalıdır.'}
-                          </p>
-                          {customAnalysis.hasBoundaryAdjustment &&
-                            customAnalysis.suggestedStartDate &&
-                            customAnalysis.suggestedEndDate && (
-                              <p className="text-[11px] font-bold text-amber-800/90 dark:text-amber-300/90">
-                                💡 Mevzuata uygun resmi izin aralığı:{' '}
-                                <span className="font-black underline">
-                                  {format(customAnalysis.suggestedStartDate, 'd MMMM', { locale: dateLocale })} –{' '}
-                                  {format(customAnalysis.suggestedEndDate, 'd MMMM yyyy', { locale: dateLocale })}
-                                </span>
-                              </p>
-                            )}
-                        </div>
-                      </div>
-
-                      {customAnalysis.hasBoundaryAdjustment &&
-                        customAnalysis.suggestedStartDateStr &&
-                        customAnalysis.suggestedEndDateStr && (
-                          <div className="pt-1 flex items-center justify-end">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (
-                                  customAnalysis.suggestedStartDateStr &&
-                                  customAnalysis.suggestedEndDateStr
-                                ) {
-                                  setLeavePlanningCustomRange(
-                                    customAnalysis.suggestedStartDateStr,
-                                    customAnalysis.suggestedEndDateStr
-                                  );
-                                  showGlobalToast(
-                                    'Tarihler mevzuata uygun resmi izin sınırlarına otomatik düzeltildi! ✨'
-                                  );
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center space-x-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
-                            >
-                              <Sparkles className="w-3.5 h-3.5" />
-                              <span>Tarihleri Otomatik Düzelt</span>
-                            </button>
-                          </div>
-                        )}
-                    </div>
-                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-200">
@@ -1467,6 +1452,178 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
             </div>
           )}
         </div>
+
+        {/* ========================================================================= */}
+        {/* STICKY BOTTOM ACTION BAR (ONLY IN MANUAL_CALENDAR STEP) */}
+        {/* ========================================================================= */}
+        {step === 'MANUAL_CALENDAR' && (
+          <div className="shrink-0 border-t-2 border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-3 sm:px-5 sm:py-3.5 shadow-2xl z-20">
+            {customAnalysis ? (
+              customAnalysis.hasBoundaryAdjustment || customAnalysis.warningMessage ? (
+                // STATE A: Invalid Boundary / Auto-Fix State
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                      <AlertTriangle className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <div className="flex items-center space-x-1.5 font-black text-xs text-amber-900 dark:text-amber-200 truncate">
+                        <span>Resmi İzin Kuralı Uyarısı</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                          Pazar/Tatil Başlayamaz
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">
+                        {customAnalysis.suggestedStartDate && customAnalysis.suggestedEndDate ? (
+                          <>
+                            Önerilen resmi aralık:{' '}
+                            <span className="font-black text-amber-700 dark:text-amber-300 underline">
+                              {format(customAnalysis.suggestedStartDate, 'd MMM', { locale: dateLocale })} –{' '}
+                              {format(customAnalysis.suggestedEndDate, 'd MMM yyyy', { locale: dateLocale })}
+                            </span>
+                          </>
+                        ) : (
+                          'Lütfen takvimden geçerli çalışma günleri seçin.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0 justify-end">
+                    <button
+                      type="button"
+                      onClick={scrollToAnalysis}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black transition-all cursor-pointer flex items-center space-x-1"
+                    >
+                      <span>Analizi Gör</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    {customAnalysis.hasBoundaryAdjustment &&
+                      customAnalysis.suggestedStartDateStr &&
+                      customAnalysis.suggestedEndDateStr && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLeavePlanningCustomRange(
+                              customAnalysis.suggestedStartDateStr!,
+                              customAnalysis.suggestedEndDateStr!
+                            );
+                            showGlobalToast(
+                              'Tarihler mevzuata uygun resmi izin sınırlarına otomatik düzeltildi! ✨'
+                            );
+                          }}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/30 active:scale-95 transition-all flex items-center space-x-1.5 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Mevzuata Göre Düzelt ✨</span>
+                        </button>
+                      )}
+                  </div>
+                </div>
+              ) : (
+                // STATE B: Valid Selection Complete
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                      <CalendarCheck2 className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                          {customAnalysis.leaveDaysSpent} Gün İzin
+                        </span>
+                        <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                          {customAnalysis.totalVacationDays} Gün Kesintisiz Tatil
+                        </span>
+                        <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          +{customAnalysis.totalVacationDays - customAnalysis.leaveDaysSpent}g Bedava
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {format(customAnalysis.formalStartDate, 'd MMMM', { locale: dateLocale })} –{' '}
+                        {format(customAnalysis.formalEndDate, 'd MMMM yyyy', { locale: dateLocale })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0 justify-end">
+                    <button
+                      type="button"
+                      onClick={scrollToAnalysis}
+                      className="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black transition-all cursor-pointer flex items-center space-x-1"
+                      title="Ayrıntılı analizi ve tatil şeridini incele"
+                    >
+                      <span>Analizi Gör</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApplyCustomLeave}
+                      className="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-black text-xs shadow-md shadow-primary-600/30 active:scale-95 transition-all flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <CalendarCheck2 className="w-4 h-4" />
+                      <span>Bu İzni Takvime Kaydet</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            ) : isManualSelectingEnd && manualParsedStartDate ? (
+              // STATE C: User selected Start Date, now picking End Date
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  {isManualStartInvalid ? (
+                    <div className="text-left font-bold text-rose-600 dark:text-rose-400">
+                      <span>
+                        ⚠️ Başlangıç ({isManualStartSunday ? 'Pazar' : 'Resmi Tatil'}) olamaz! İzin çalışma gününden başlatılmalıdır.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-left font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                      <span>Başlangıç: </span>
+                      <span className="text-primary-600 dark:text-primary-400 font-black">
+                        {format(manualParsedStartDate, 'd MMMM yyyy, EEEE', { locale: dateLocale })}
+                      </span>
+                      <span className="text-slate-400 font-normal ml-1">
+                        — Şimdi bitiş gününe dokunun
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-1 justify-end shrink-0">
+                  <span className="text-[10.5px] font-bold text-slate-400 mr-1 hidden sm:inline">
+                    Hızlı Ekle:
+                  </span>
+                  {[5, 7, 10, 14].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setPresetDays(cnt)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-black bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 text-primary-700 dark:text-primary-300 border border-primary-500/30 cursor-pointer active:scale-95 transition-all"
+                    >
+                      +{cnt} gün
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // STATE D: Initial idle state (no selection yet)
+              <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center space-x-2">
+                  <span>🗓️</span>
+                  <span className="font-bold">
+                    İzninizi başlatmak istediğiniz tarihe takvimden dokunun.
+                  </span>
+                </div>
+                <div className="text-[11px] font-semibold text-slate-400 hidden sm:inline">
+                  (Başlangıç ve bitiş günlerini seçtiğinizde izin analizi otomatik hesaplanır)
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

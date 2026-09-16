@@ -130,7 +130,7 @@ export const FloatingNavMenu: React.FC = () => {
       {/* Floating Speed-Dial Cards Container */}
       <div
         ref={menuRef}
-        className="fixed right-3.5 sm:right-6 bottom-[calc(0.75rem+var(--sab))] z-50 flex flex-col items-end pointer-events-none select-none"
+        className="fixed right-3.5 sm:right-6 bottom-[calc(0.75rem+var(--sab))] z-40 flex flex-col items-end pointer-events-none select-none"
       >
         <AnimatePresence>
           {isOpen && (

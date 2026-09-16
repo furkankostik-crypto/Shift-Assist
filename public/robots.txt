@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://vardiya-takip.web.app/sitemap.xml
+Sitemap: https://shift-assist.vercel.app/sitemap.xml

@@ -386,7 +386,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
                     </div>
                     <div>
                       <div className="font-black text-xs text-slate-900 leading-tight">
-                        {t('theme_light', 'Açık Tema')}
+                        {t('theme_light', 'Açık')}
                       </div>
                       <span className="text-[9px] text-slate-400 mt-0.5 block truncate max-w-full">
                         Aydınlık
@@ -414,7 +414,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
                     </div>
                     <div>
                       <div className="font-black text-xs text-slate-100 leading-tight">
-                        {t('theme_dark', 'Koyu Tema')}
+                        {t('theme_dark', 'Koyu')}
                       </div>
                       <span className="text-[9px] text-slate-400 mt-0.5 block truncate max-w-full">
                         OLED Siyah

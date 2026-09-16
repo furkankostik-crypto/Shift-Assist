@@ -160,22 +160,14 @@ export function isOfficialHoliday(date: Date): boolean {
   return Boolean(detail && detail.isOfficial);
 }
 
-/**
- * Checks if a specific day is a valid start or end date for formal annual leave.
- * RULE: Annual leave CANNOT start or end on an Off day (REST shift, or Official Holiday).
- */
 export function isValidLeaveBoundary(
   date: Date,
-  pattern?: ShiftPattern | null,
-  patternStartDate?: string
+  _pattern?: ShiftPattern | null,
+  _patternStartDate?: string
 ): boolean {
+  // Senelik izin Pazar gününde veya resmi tatilde başlatılamaz ve bitirilemez
   if (isOfficialHoliday(date)) return false;
   if (isSunday(date)) return false;
-  if (pattern && patternStartDate) {
-    const shift = getShiftForDate(date, pattern, patternStartDate);
-    if (shift && shift.type === 'REST') return false;
-    return true;
-  }
   return true;
 }
 
@@ -183,19 +175,15 @@ export function isValidLeaveBoundary(
  * Determines whether taking leave on this day consumes 1 day of annual leave quota.
  * RULE (Turkish Labor Law & HR Regulations):
  * 1. Official holidays (religious, national, eve days) do NOT consume leave quota.
- * 2. Sundays (weekly rest day / hafta tatili) do NOT consume leave quota under ANY circumstance (even if a work shift is scheduled).
- * 3. In shift patterns: REST (Off) shifts do NOT consume leave quota.
- * 4. Only actual work days/shifts (excluding Sundays, official holidays, and off days) consume leave quota.
+ * 2. Sundays (weekly rest day / hafta tatili) do NOT consume leave quota under ANY circumstance.
+ * 3. ALL OTHER DAYS within the formal leave range (both work shifts and shift off/rest days) consume leave quota!
  */
-export function isDayLeaveDeductible(date: Date, shiftDay?: ShiftDay | null): boolean {
+export function isDayLeaveDeductible(date: Date, _shiftDay?: ShiftDay | null): boolean {
   // Resmi tatiller (bayramlar, arife günleri) izin hakkından düşülmez
   if (isOfficialHoliday(date)) return false;
   // Pazar günleri (hafta tatili) izin hakkından düşülmez
   if (isSunday(date)) return false;
-  // Vardiya planında dinlenme (Off) günleri izin hakkından düşülmez
-  if (shiftDay) {
-    return shiftDay.type === 'WORK';
-  }
+  // İzin aralığına giren tüm diğer günler (çalışma günleri ve vardiya off günleri) izin hakkını tüketir
   return true;
 }
 
@@ -224,29 +212,19 @@ export function analyzeDay(
     role = 'OFFICIAL_HOLIDAY';
     deductible = false;
   }
-  // 2. Pazar Günü (Hafta tatili, vardiyada çalışma olsa dahi kanunen harcanan izinden eksilmez)
+  // 2. Pazar Günü (Hafta tatili, kanunen harcanan izinden eksilmez)
   else if (sunday) {
     role = 'SUNDAY_OFF';
     deductible = false;
   }
-  // 3. Vardiya Off (İstirahat günü, izinden eksilmez)
-  else if (isRest) {
-    role = 'SHIFT_OFF';
-    deductible = false;
-  }
-  // 4. İzin Aralığındaki Çalışma Günleri (İzin hakkından düşen gerçek çalışma günleri)
+  // 3. İzin Aralığındaki Günler (Çalışma günleri ve aralığa giren tüm Off günleri izin hakkından düşer!)
   else if (isWithinFormalLeave) {
-    if (isWork) {
-      role = 'LEAVE';
-      deductible = true;
-    } else {
-      role = 'SHIFT_OFF';
-      deductible = false;
-    }
+    role = 'LEAVE';
+    deductible = true;
   }
-  // 5. İzin Dışındaki Normal Günler
+  // 4. İzin Dışındaki Normal Günler (Öncesi ve sonrasındaki bağlı off'lar)
   else {
-    role = isWork ? 'LEAVE' : 'SHIFT_OFF';
+    role = isRest ? 'SHIFT_OFF' : 'LEAVE';
     deductible = false;
   }
 
@@ -266,52 +244,77 @@ export function analyzeDay(
 }
 
 /**
+ * Finds the closest valid boundary before a given date (searching backwards)
+ */
+export function findPrecedingValidBoundary(date: Date, maxLookback: number = 30): Date {
+  let curr = subDays(date, 1);
+  for (let i = 0; i < maxLookback; i++) {
+    if (isValidLeaveBoundary(curr)) {
+      return curr;
+    }
+    curr = subDays(curr, 1);
+  }
+  return subDays(date, 1);
+}
+
+/**
+ * Finds the closest valid boundary after a given date (searching forward)
+ */
+export function findSucceedingValidBoundary(date: Date, maxLookforward: number = 30): Date {
+  let curr = addDays(date, 1);
+  for (let i = 0; i < maxLookforward; i++) {
+    if (isValidLeaveBoundary(curr)) {
+      return curr;
+    }
+    curr = addDays(curr, 1);
+  }
+  return addDays(date, 1);
+}
+
+// Backward-compatible alias exports
+export const findPrecedingValidWorkDay = (
+  date: Date,
+  _pattern?: ShiftPattern | null,
+  _patternStartDate?: string,
+  maxLookback?: number
+) => findPrecedingValidBoundary(date, maxLookback);
+
+export const findSucceedingValidWorkDay = (
+  date: Date,
+  _pattern?: ShiftPattern | null,
+  _patternStartDate?: string,
+  maxLookforward?: number
+) => findSucceedingValidBoundary(date, maxLookforward);
+
+/**
  * Adjusts formal start and end dates according to Turkish labor law & shift rules:
- * - RULE 1: Annual leave CANNOT start on an Off day (REST shift, Sunday, or Official Holiday).
- *   If the selected start date is already an off day, formal leave starts on the first actual work day.
- * - RULE 2: Annual leave CANNOT end on an Off day (REST shift, Sunday, or Official Holiday).
- *   If the selected end date is already an off day, formal leave ends on the last actual work day.
+ * - KURAL 1: Senelik izin Pazar gününde veya resmi tatilde BAŞLAYAMAZ.
+ *   Eğer shiftin ilk günü Pazar veya resmi tatil ise, izin mecburen tatil olmayan bir önceki güne uzatılır.
+ *   (Örn: Shift Pazar başlıyorsa izin mecburen Cumartesi gününden başlatılır; Cumartesi off olsa dahi izne girer ve 1 gün hak tüketir).
+ * - KURAL 2: Senelik izin Pazar gününde veya resmi tatilde BİTEMEZ.
+ *   Eğer shiftin son günü Pazar veya resmi tatil ise, izin mecburen tatil olmayan sonraki güne uzatılır.
+ *   (Örn: Shift Pazar bitiyorsa izin mecburen Pazartesi gününe uzatılır; Pazartesi off olsa dahi izne girer ve 1 gün hak tüketir).
  */
 export function adjustLeaveBoundaries(
   startDate: Date,
   endDate: Date,
-  pattern: ShiftPattern | null,
-  patternStartDate: string
+  _pattern?: ShiftPattern | null,
+  _patternStartDate?: string
 ): { formalStart: Date; formalEnd: Date; adjusted: boolean } {
   let formalStart = new Date(startDate);
   let formalEnd = new Date(endDate);
   let adjusted = false;
 
-  // 1. Adjust Start Date:
-  // Eğer başlangıç günü zaten off/tatil/Pazar ise, resmi izin ilk fiili çalışma gününden başlar.
-  while (formalStart <= formalEnd) {
-    const shift = pattern ? getShiftForDate(formalStart, pattern, patternStartDate) : null;
-    const sunday = isSunday(formalStart);
-    const holiday = isOfficialHoliday(formalStart);
-    const isOff = sunday || holiday || (shift ? shift.type === 'REST' : false);
-
-    if (isOff) {
-      formalStart = addDays(formalStart, 1);
-      adjusted = true;
-    } else {
-      break;
-    }
+  // 1. Adjust Start Date: Senelik izin Pazar veya Resmi Tatilde başlatılamaz; önceki güne uzatılır.
+  if (!isValidLeaveBoundary(formalStart)) {
+    formalStart = findPrecedingValidBoundary(formalStart);
+    adjusted = true;
   }
 
-  // 2. Adjust End Date:
-  // Eğer bitiş günü zaten off/tatil/Pazar ise, resmi izin son fiili çalışma gününde biter.
-  while (formalEnd >= formalStart) {
-    const shift = pattern ? getShiftForDate(formalEnd, pattern, patternStartDate) : null;
-    const sunday = isSunday(formalEnd);
-    const holiday = isOfficialHoliday(formalEnd);
-    const isOff = sunday || holiday || (shift ? shift.type === 'REST' : false);
-
-    if (isOff) {
-      formalEnd = subDays(formalEnd, 1);
-      adjusted = true;
-    } else {
-      break;
-    }
+  // 2. Adjust End Date: Senelik izin Pazar veya Resmi Tatilde bitirilemez; sonraki güne uzatılır.
+  if (!isValidLeaveBoundary(formalEnd)) {
+    formalEnd = findSucceedingValidBoundary(formalEnd);
+    adjusted = true;
   }
 
   return { formalStart, formalEnd, adjusted };
@@ -331,10 +334,11 @@ export function findPrecedingOffDays(
 
   for (let i = 0; i < maxLookback; i++) {
     const shift = getShiftForDate(curr, pattern, patternStartDate);
-    const sunday = isSunday(curr);
-    const holiday = isOfficialHoliday(curr);
-    // Vardiyada istirahat (REST), Pazar günü (hafta tatili) veya Resmi Tatil günleri kesintisiz tatil zincirinin parçasıdır.
-    const isOff = (shift ? shift.type === 'REST' : false) || sunday || holiday;
+    // Vardiyalı çalışanda izin dışındaki bir günün off sayılabilmesi için
+    // personelin o gün vardiyasında dinlenme (REST) olması zorunludur.
+    // Eğer vardiyada çalışma (WORK) varsa, o gün resmi tatil veya Pazar olsa dahi
+    // personel işe gitmek zorunda kalır; bu yüzden tatil zinciri orada kesilir.
+    const isOff = shift ? shift.type === 'REST' : (isSunday(curr) || isOfficialHoliday(curr));
 
     if (isOff) {
       offDays.unshift(new Date(curr));
@@ -360,10 +364,7 @@ export function findSucceedingOffDays(
 
   for (let i = 0; i < maxLookforward; i++) {
     const shift = getShiftForDate(curr, pattern, patternStartDate);
-    const sunday = isSunday(curr);
-    const holiday = isOfficialHoliday(curr);
-    // Vardiyada istirahat (REST), Pazar günü (hafta tatili) veya Resmi Tatil günleri kesintisiz tatil zincirinin parçasıdır.
-    const isOff = (shift ? shift.type === 'REST' : false) || sunday || holiday;
+    const isOff = shift ? shift.type === 'REST' : (isSunday(curr) || isOfficialHoliday(curr));
 
     if (isOff) {
       offDays.push(new Date(curr));
@@ -690,42 +691,6 @@ export function calculateCustomLeavePlan(
 
   let isValid = true;
 
-  const startShift = pattern ? getShiftForDate(startDate, pattern, patternStartDate) : null;
-  const isStartSunday = isSunday(startDate);
-  const isStartRest = isStartSunday || (startShift ? startShift.type === 'REST' : false);
-
-  if (isOfficialHoliday(startDate)) {
-    isValid = false;
-    const hol = getHolidayDetail(startDate);
-    const holName = hol?.name || 'Resmi Tatil';
-    warningMessage = `Senelik izin resmi tatil gününde (${holName}) başlatılamaz. İzin tatil sonrası ilk iş gününden başlatılmalıdır.`;
-  } else if (isStartRest) {
-    isValid = false;
-    if (isStartSunday) {
-      warningMessage = 'Senelik izin Pazar günü başlatılamaz. Pazar günü hafta tatili olduğundan izin ilk iş gününüz olan Pazartesi gününden başlatılmalıdır.';
-    } else {
-      warningMessage = 'Senelik izin vardiya off (istirahat) gününde başlatılamaz. İzin ilk iş gününüzden başlatılmalıdır.';
-    }
-  }
-
-  const endShift = pattern ? getShiftForDate(endDate, pattern, patternStartDate) : null;
-  const isEndSunday = isSunday(endDate);
-  const isEndRest = isEndSunday || (endShift ? endShift.type === 'REST' : false);
-
-  if (isOfficialHoliday(endDate)) {
-    isValid = false;
-    const hol = getHolidayDetail(endDate);
-    const holName = hol?.name || 'Resmi Tatil';
-    const extraMsg = `Senelik izin resmi tatil gününde (${holName}) bitirilemez. İzin tatil öncesi son iş gününde bitirilmelidir.`;
-    warningMessage = warningMessage ? `${warningMessage} Ayrıca ${extraMsg}` : extraMsg;
-  } else if (isEndRest) {
-    isValid = false;
-    const extraMsg = isEndSunday
-      ? 'Senelik izin Pazar günü bitirilemez. Pazar günü hafta tatili olduğundan izin son fiili iş gününüzde bitirilmelidir.'
-      : 'Senelik izin vardiya off (istirahat) gününde bitirilemez. İzin son fiili çalışma gününde bitirilmelidir.';
-    warningMessage = warningMessage ? `${warningMessage} Ayrıca ${extraMsg}` : extraMsg;
-  }
-
   const { formalStart: validStart, formalEnd: validEnd, adjusted } = adjustLeaveBoundaries(
     startDate,
     endDate,
@@ -743,29 +708,58 @@ export function calculateCustomLeavePlan(
     suggestedEndDateStr = formatToFullDateFast(validEnd);
   }
 
-  // Preceding & Succeeding off days search boundaries:
-  // Even if startDate was adjusted forward (e.g. 29 Oct holiday -> 30 Oct work day),
-  // we must search backwards from startDate so that preceding off days (e.g. 27, 28 Oct) are connected.
-  const searchStart = startDate < validStart ? startDate : validStart;
-  const searchEnd = endDate > validEnd ? endDate : validEnd;
+  const isStartSunday = isSunday(startDate);
+  const isStartHoliday = isOfficialHoliday(startDate);
 
-  // Vacation span (kesintisiz tatil aralığı: öncesi ve sonrası off günleri)
+  if (isStartHoliday) {
+    isValid = false;
+    const hol = getHolidayDetail(startDate);
+    const holName = hol?.name || 'Resmi Tatil';
+    const suggestedStr = suggestedStartDate ? format(suggestedStartDate, 'd MMMM', { locale: tr }) : '';
+    warningMessage = `Senelik izin resmi tatil gününde (${holName}) başlatılamaz. Mevzuata uygun olarak izin başlangıcınız önceki geçerli gün olan ${suggestedStr} tarihine uzatılmıştır.`;
+  } else if (isStartSunday) {
+    isValid = false;
+    const suggestedStr = suggestedStartDate ? format(suggestedStartDate, 'd MMMM', { locale: tr }) : '';
+    warningMessage = `Senelik izin Pazar gününde (hafta tatili) başlatılamaz. Mevzuata uygun olarak izin başlangıcınız önceki geçerli gün olan ${suggestedStr} tarihine uzatılmıştır.`;
+  }
+
+  const isEndSunday = isSunday(endDate);
+  const isEndHoliday = isOfficialHoliday(endDate);
+
+  if (isEndHoliday) {
+    isValid = false;
+    const hol = getHolidayDetail(endDate);
+    const holName = hol?.name || 'Resmi Tatil';
+    const suggestedStr = suggestedEndDate ? format(suggestedEndDate, 'd MMMM', { locale: tr }) : '';
+    const extraMsg = `Senelik izin resmi tatil gününde (${holName}) bitirilemez. Mevzuata uygun olarak izin bitişiniz sonraki geçerli gün olan ${suggestedStr} tarihine uzatılmıştır.`;
+    warningMessage = warningMessage ? `${warningMessage} Ayrıca ${extraMsg}` : extraMsg;
+  } else if (isEndSunday) {
+    isValid = false;
+    const suggestedStr = suggestedEndDate ? format(suggestedEndDate, 'd MMMM', { locale: tr }) : '';
+    const extraMsg = `Senelik izin Pazar gününde (hafta tatili) bitirilemez. Mevzuata uygun olarak izin bitişiniz sonraki geçerli gün olan ${suggestedStr} tarihine uzatılmıştır.`;
+    warningMessage = warningMessage ? `${warningMessage} Ayrıca ${extraMsg}` : extraMsg;
+  }
+
+  // Preceding & Succeeding off days search boundaries:
+  const effectiveStart = adjusted ? validStart : startDate;
+  const effectiveEnd = adjusted ? validEnd : endDate;
+
   const precedingOffs = pattern
-    ? findPrecedingOffDays(searchStart, pattern, patternStartDate)
+    ? findPrecedingOffDays(effectiveStart, pattern, patternStartDate)
     : [];
   const succeedingOffs = pattern
-    ? findSucceedingOffDays(searchEnd, pattern, patternStartDate)
+    ? findSucceedingOffDays(effectiveEnd, pattern, patternStartDate)
     : [];
 
-  const vacationStart = precedingOffs.length > 0 ? precedingOffs[0] : searchStart;
-  const vacationEnd = succeedingOffs.length > 0 ? succeedingOffs[succeedingOffs.length - 1] : searchEnd;
+  const vacationStart = precedingOffs.length > 0 ? precedingOffs[0] : effectiveStart;
+  const vacationEnd = succeedingOffs.length > 0 ? succeedingOffs[succeedingOffs.length - 1] : effectiveEnd;
 
   const vacationDaysInterval = eachDayOfInterval({ start: vacationStart, end: vacationEnd });
   const breakdown: DayBreakdown[] = [];
   let leaveDaysSpent = 0;
 
   for (const day of vacationDaysInterval) {
-    const isWithinSelectedRange = day >= startDate && day <= endDate;
+    const isWithinSelectedRange = day >= effectiveStart && day <= effectiveEnd;
     const bDay = analyzeDay(day, pattern, patternStartDate, isWithinSelectedRange);
 
     if (isWithinSelectedRange && bDay.isLeaveDeductible) {
@@ -840,7 +834,9 @@ export function calculateCustomLeavePlan(
 export async function applyLeaveOpportunityToCalendar(
   opportunity: LeaveOpportunity
 ): Promise<void> {
-  const leaveDays = opportunity.breakdown.filter((d) => d.dayRole === 'LEAVE');
+  const leaveDays = opportunity.breakdown.filter((d) => {
+    return d.date >= opportunity.formalStartDate && d.date <= opportunity.formalEndDate;
+  });
 
   const shiftTypes = await db.shiftTypes.toArray();
   const vacationSt = shiftTypes.find(
@@ -872,7 +868,10 @@ export async function applyLeaveOpportunityToCalendar(
 export async function removeLeaveOpportunityFromCalendar(
   opportunity: LeaveOpportunity
 ): Promise<void> {
-  const dateStrs = opportunity.breakdown.map((d) => d.dateStr);
+  const leaveDays = opportunity.breakdown.filter((d) => {
+    return d.date >= opportunity.formalStartDate && d.date <= opportunity.formalEndDate;
+  });
+  const dateStrs = leaveDays.map((d) => d.dateStr);
 
   await db.transaction('rw', db.exceptions, async () => {
     for (const dateStr of dateStrs) {

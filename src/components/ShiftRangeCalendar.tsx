@@ -535,8 +535,13 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
                 }
               `}
             >
+              {/* Today Frame Overlay */}
+              {isToday && !isInSelectedRange && !isStart && !isEnd && (
+                <div className="absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0 rounded-xl" />
+              )}
+
               {/* Day Number and Today Indicator */}
-              <div className="flex items-center justify-between w-full leading-none">
+              <div className="flex items-center justify-between w-full leading-none z-10">
                 <span
                   className={`text-xs sm:text-sm font-black transition-all ${
                     isStart && isStartInvalid
