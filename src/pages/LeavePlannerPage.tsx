@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { db, type ShiftPattern, type ShiftException } from '../db/db';
 import { useAppStore } from '../store/useAppStore';
+import { triggerAutoSync } from '../services/syncService';
 import {
   getLeavePeriod,
   LEAVE_PERIODS_INFO,
@@ -48,6 +49,10 @@ export const LeavePlannerPage: React.FC = () => {
     leavePlanningYear,
     setLeavePlanningYear,
     openLeavePlanning,
+    isLeavePlanningOpen,
+    isLeavePlanningMinimized,
+    restoreLeavePlanning,
+    closeLeavePlanning,
   } = useAppStore();
 
   const currentYear = new Date().getFullYear();
@@ -160,6 +165,7 @@ export const LeavePlannerPage: React.FC = () => {
           await db.exceptions.delete(ex.id);
         }
       });
+      triggerAutoSync();
       showToast('Kayıtlı izin takvimden kaldırıldı.');
     } catch (err) {
       console.error(err);
@@ -239,6 +245,42 @@ export const LeavePlannerPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Continuing Leave Planning Session Banner (when minimized) */}
+      {isLeavePlanningOpen && isLeavePlanningMinimized && (
+        <div className="mb-3 p-3 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 shadow-md flex items-center justify-between gap-2.5 shrink-0 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 text-xs">
+              🌴
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-black text-slate-900 dark:text-white block truncate">
+                İzin Planlaması Devam Ediyor ({leavePlanningYear})
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                Kaldığınız yerden devam etmek için sihirbazı açın
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <button
+              onClick={restoreLeavePlanning}
+              className="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-black shadow-md shadow-primary-500/20 active:scale-95 transition-all flex items-center space-x-1 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Devam Et</span>
+            </button>
+            <button
+              onClick={closeLeavePlanning}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Planlamayı İptal Et"
+            >
+              <Trash2 className="w-4 h-4 text-rose-500" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <LeaveBalancesSummary />
 

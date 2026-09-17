@@ -22,6 +22,7 @@ import {
 } from '../db/db';
 import { SetPatternStartDateModal } from './SetPatternStartDateModal';
 import { ShiftIcon } from '../utils/shiftIcons';
+import { triggerAutoSync } from '../services/syncService';
 
 interface PatternBuilderProps {
   initialPattern?: ShiftPattern | null;
@@ -344,6 +345,7 @@ export const PatternBuilder = ({
       startDate: chosenStartDate,
     });
 
+    triggerAutoSync();
     setIsStartDateModalOpen(false);
     onSave();
   };
@@ -351,6 +353,7 @@ export const PatternBuilder = ({
   // Save only without setting/changing active pattern
   const handleSaveWithoutApplying = async () => {
     await savePatternToDb();
+    triggerAutoSync();
     setIsStartDateModalOpen(false);
     onSave();
   };

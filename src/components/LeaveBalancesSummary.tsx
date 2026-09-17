@@ -5,6 +5,7 @@ import { calculateLeaveBalances } from '../utils/leaveBalances';
 import { CalendarCheck, Palmtree, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 export function LeaveBalancesSummary() {
   const exceptions = useLiveQuery(() => db.exceptions.toArray()) || [];
@@ -48,10 +49,14 @@ export function LeaveBalancesSummary() {
       {/* Period Info (Centered) */}
       <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center justify-center gap-1 pt-1 border-t border-slate-100 dark:border-slate-800/60 w-full text-center">
         {!balances.hasEmploymentDate ? (
-          <span className="text-amber-600 dark:text-amber-500 font-semibold flex items-center gap-1">
-            <Info className="w-3 h-3" />
-            <span>İşe giriş tarihi girin</span>
-          </span>
+          <Link
+            to="/settings"
+            className="text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400 font-semibold flex items-center gap-1 hover:underline transition-colors cursor-pointer"
+            title="İşe giriş tarihinizi Ayarlar sayfasından belirleyin"
+          >
+            <Info className="w-3 h-3 shrink-0" />
+            <span>İşe giriş tarihi girin →</span>
+          </Link>
         ) : (
           <span>{format(balances.periodStart, 'd MMM yy', {locale: tr})} - {format(balances.periodEnd, 'd MMM yy', {locale: tr})}</span>
         )}

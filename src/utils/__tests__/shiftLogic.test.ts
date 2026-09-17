@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getShiftForDate } from '../shiftLogic';
+import { getShiftForDate, resolveShiftDayWithTypes } from '../shiftLogic';
 import { createTeamPattern, type ShiftPattern } from '../../db/db';
 
 describe('shiftLogic - getShiftForDate', () => {
@@ -87,3 +87,88 @@ describe('shiftLogic - getShiftForDate', () => {
     expect(shift).toBeNull();
   });
 });
+
+describe('shiftLogic - resolveShiftDayWithTypes', () => {
+  it('should dynamically overlay customized ShiftType properties onto ShiftDay by shiftTypeId', () => {
+    const sampleShiftDay = {
+      dayIndex: 1,
+      shiftTypeId: 'st-morning',
+      name: 'Sabah',
+      color: '#3b82f6',
+      icon: 'Sun',
+      startTime: '06:30',
+      endTime: '15:00',
+      type: 'WORK' as const,
+    };
+
+    const customizedShiftTypesMap = new Map([
+      [
+        'st-morning',
+        {
+          id: 'st-morning',
+          name: 'Erken Sabah (Özel)',
+          color: '#ec4899', // Custom pink
+          icon: 'Clock', // Custom icon
+          startTime: '06:00',
+          endTime: '14:30',
+          type: 'WORK' as const,
+        },
+      ],
+    ]);
+
+    const resolved = resolveShiftDayWithTypes(sampleShiftDay, customizedShiftTypesMap);
+    expect(resolved).toBeDefined();
+    expect(resolved?.name).toBe('Erken Sabah (Özel)');
+    expect(resolved?.color).toBe('#ec4899');
+    expect(resolved?.icon).toBe('Clock');
+    expect(resolved?.startTime).toBe('06:00');
+    expect(resolved?.endTime).toBe('14:30');
+    expect(resolved?.type).toBe('WORK');
+  });
+
+  it('should fall back to matching by name if shiftTypeId is not found', () => {
+    const legacyShiftDay = {
+      dayIndex: 2,
+      name: 'Öğle',
+      color: '#f97316',
+      icon: 'Sunset',
+      type: 'WORK' as const,
+    };
+
+    const customizedShiftTypesMap = new Map([
+      [
+        'st-afternoon',
+        {
+          id: 'st-afternoon',
+          name: 'Öğle',
+          startTime: '14:30',
+          endTime: '23:00',
+          color: '#14b8a6', // Custom teal
+          icon: 'Sun',
+          type: 'WORK' as const,
+        },
+      ],
+    ]);
+
+    const resolved = resolveShiftDayWithTypes(legacyShiftDay, customizedShiftTypesMap);
+    expect(resolved).toBeDefined();
+    expect(resolved?.color).toBe('#14b8a6');
+    expect(resolved?.icon).toBe('Sun');
+  });
+
+  it('should gracefully return original shiftDay if map is empty or shift not found', () => {
+    const sampleShiftDay = {
+      dayIndex: 3,
+      shiftTypeId: 'st-unknown',
+      name: 'Bilinmeyen',
+      color: '#64748b',
+      type: 'WORK' as const,
+    };
+
+    const emptyMap = new Map();
+    expect(resolveShiftDayWithTypes(sampleShiftDay, emptyMap)).toEqual(sampleShiftDay);
+    expect(resolveShiftDayWithTypes(sampleShiftDay, null)).toEqual(sampleShiftDay);
+    expect(resolveShiftDayWithTypes(null, emptyMap)).toBeNull();
+  });
+});
+

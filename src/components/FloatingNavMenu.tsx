@@ -22,6 +22,8 @@ import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePwa } from '../utils/pwa';
 import { hapticTap } from '../utils/haptics';
+import { APP_VERSION } from '../utils/version';
+import { useUpdateCheck } from '../utils/useUpdateCheck';
 
 interface NavItemData {
   to: string;
@@ -38,6 +40,9 @@ export const FloatingNavMenu: React.FC = () => {
   const location = useLocation();
   const isDayDetailOpen = useAppStore((state) => state.isDayDetailOpen);
   const setIsSetupModalOpen = useAppStore((state) => state.setIsSetupModalOpen);
+  const setIsUpdateModalOpen = useAppStore((state) => state.setIsUpdateModalOpen);
+  const { status: updateStatus } = useUpdateCheck();
+  const hasUpdate = updateStatus === 'update-available';
   const {
     user,
     openAuthModal,
@@ -361,6 +366,56 @@ export const FloatingNavMenu: React.FC = () => {
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 opacity-70" />
                 </button>
+
+                {/* Check for Updates Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsUpdateModalOpen(true);
+                  }}
+                  className={`w-full flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer text-xs font-bold ${
+                    hasUpdate
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-xs'
+                      : 'bg-slate-100/70 dark:bg-slate-800/60 hover:bg-slate-200/80 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RefreshCw className={`w-4 h-4 shrink-0 ${hasUpdate ? 'text-amber-500 animate-spin' : 'text-slate-500 dark:text-slate-400'}`} />
+                    <span>Güncellemeleri Denetle</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                      hasUpdate
+                        ? 'bg-amber-500 text-white animate-pulse'
+                        : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      {hasUpdate ? 'YENİ SÜRÜM!' : `v${APP_VERSION}`}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Menu Version & Status Footer */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2 px-1 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsUpdateModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  title="Sürüm detayları ve güncellemeler"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${hasUpdate ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+                  <span className="font-bold">v{APP_VERSION}</span>
+                  <span>•</span>
+                  <span className={hasUpdate ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}>
+                    {hasUpdate ? 'Güncelleme Hazır' : 'Güncel'}
+                  </span>
+                </button>
+                <span className="font-semibold text-slate-400/80">Shift Assist</span>
               </div>
             </motion.div>
           )}
@@ -392,7 +447,12 @@ export const FloatingNavMenu: React.FC = () => {
             ) : (
               <div className="relative">
                 <Menu className="w-5 h-5 transition-transform group-hover:scale-110" />
-                {user ? (
+                {hasUpdate ? (
+                  <span
+                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-slate-900 shadow-sm animate-bounce"
+                    title="Yeni Güncelleme Mevcut!"
+                  />
+                ) : user ? (
                   <span
                     className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900 dark:ring-slate-800 shadow-xs"
                     title="Bulut Hesabı Aktif"

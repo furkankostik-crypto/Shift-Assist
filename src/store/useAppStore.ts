@@ -6,6 +6,7 @@ import {
   type ShiftDisplayMode,
   DEFAULT_SHIFT_DISPLAY_MODE,
 } from '../utils/calendarThemes';
+import { triggerAutoSync } from '../services/syncService';
 
 export interface LeavePreview {
   id?: string;
@@ -50,6 +51,8 @@ interface AppState {
   setHasCompletedSetup: (completed: boolean) => void;
   isSetupModalOpen: boolean;
   setIsSetupModalOpen: (open: boolean) => void;
+  isUpdateModalOpen: boolean;
+  setIsUpdateModalOpen: (open: boolean) => void;
   // Leave planning flow state
   isLeavePlanningOpen: boolean;
   isLeavePlanningMinimized: boolean;
@@ -80,15 +83,30 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       theme: 'system',
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        set({ theme });
+        triggerAutoSync();
+      },
       calendarTheme: DEFAULT_CALENDAR_THEME,
-      setCalendarTheme: (calendarTheme) => set({ calendarTheme }),
+      setCalendarTheme: (calendarTheme) => {
+        set({ calendarTheme });
+        triggerAutoSync();
+      },
       shiftDisplayMode: DEFAULT_SHIFT_DISPLAY_MODE,
-      setShiftDisplayMode: (shiftDisplayMode) => set({ shiftDisplayMode }),
+      setShiftDisplayMode: (shiftDisplayMode) => {
+        set({ shiftDisplayMode });
+        triggerAutoSync();
+      },
       employmentStartDate: null,
-      setEmploymentStartDate: (employmentStartDate) => set({ employmentStartDate }),
+      setEmploymentStartDate: (employmentStartDate) => {
+        set({ employmentStartDate });
+        triggerAutoSync();
+      },
       annualLeaveEntitlement: 14, // Default to 14 days (standard minimum in Turkey)
-      setAnnualLeaveEntitlement: (annualLeaveEntitlement) => set({ annualLeaveEntitlement }),
+      setAnnualLeaveEntitlement: (annualLeaveEntitlement) => {
+        set({ annualLeaveEntitlement });
+        triggerAutoSync();
+      },
       selectedDate: new Date(),
       setSelectedDate: (date) => set({ selectedDate: date }),
       leavePreview: null,
@@ -97,9 +115,14 @@ export const useAppStore = create<AppState>()(
       isDayDetailOpen: false,
       setIsDayDetailOpen: (isDayDetailOpen) => set({ isDayDetailOpen }),
       hasCompletedSetup: false,
-      setHasCompletedSetup: (hasCompletedSetup) => set({ hasCompletedSetup }),
+      setHasCompletedSetup: (hasCompletedSetup) => {
+        set({ hasCompletedSetup });
+        triggerAutoSync();
+      },
       isSetupModalOpen: false,
       setIsSetupModalOpen: (isSetupModalOpen) => set({ isSetupModalOpen }),
+      isUpdateModalOpen: false,
+      setIsUpdateModalOpen: (isUpdateModalOpen) => set({ isUpdateModalOpen }),
       // Leave planning flow state
       isLeavePlanningOpen: false,
       isLeavePlanningMinimized: false,

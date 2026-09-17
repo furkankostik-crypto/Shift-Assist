@@ -406,64 +406,60 @@ export async function ensureDefaultShiftTypes(): Promise<void> {
           const updates: Partial<ShiftType> = {};
 
         if (item.id === 'st-morning' || item.name.toLowerCase() === 'sabah') {
-          if (item.startTime !== '06:30' || item.endTime !== '15:00' || item.type !== 'WORK' || !item.isFixed || !item.isDefault) {
+          if (!item.startTime && !item.endTime) {
             updates.startTime = '06:30';
             updates.endTime = '15:00';
-            updates.type = 'WORK';
-            updates.isFixed = true;
-            updates.isDefault = true;
           }
+          if (!item.type) updates.type = 'WORK';
+          if (!item.isFixed) updates.isFixed = true;
+          if (!item.isDefault) updates.isDefault = true;
           if (!item.name) updates.name = 'Sabah';
           if (!item.color) updates.color = '#3b82f6';
           if (!item.icon) updates.icon = 'Sun';
         } else if (item.id === 'st-afternoon' || item.name.toLowerCase() === 'öğle' || item.name.toLowerCase() === 'ogle') {
-          if (item.startTime !== '14:30' || item.endTime !== '23:00' || item.type !== 'WORK' || !item.isFixed || !item.isDefault) {
+          if (!item.startTime && !item.endTime) {
             updates.startTime = '14:30';
             updates.endTime = '23:00';
-            updates.type = 'WORK';
-            updates.isFixed = true;
-            updates.isDefault = true;
           }
+          if (!item.type) updates.type = 'WORK';
+          if (!item.isFixed) updates.isFixed = true;
+          if (!item.isDefault) updates.isDefault = true;
           if (!item.name) updates.name = 'Öğle';
           if (!item.color) updates.color = '#f97316';
           if (!item.icon) updates.icon = 'Sunset';
         } else if (item.id === 'st-night' || item.name.toLowerCase() === 'gece') {
-          if (item.startTime !== '22:30' || item.endTime !== '07:00' || item.type !== 'WORK' || !item.isFixed || !item.isDefault) {
+          if (!item.startTime && !item.endTime) {
             updates.startTime = '22:30';
             updates.endTime = '07:00';
-            updates.type = 'WORK';
-            updates.isFixed = true;
-            updates.isDefault = true;
           }
+          if (!item.type) updates.type = 'WORK';
+          if (!item.isFixed) updates.isFixed = true;
+          if (!item.isDefault) updates.isDefault = true;
           if (!item.name) updates.name = 'Gece';
           if (!item.color) updates.color = '#8b5cf6';
           if (!item.icon) updates.icon = 'Moon';
         } else if (item.id === 'st-off' || item.name.toLowerCase() === 'off') {
-          if (item.type !== 'REST' || item.startTime !== '' || item.endTime !== '' || !item.isFixed || !item.isDefault) {
-            updates.type = 'REST';
-            updates.startTime = '';
-            updates.endTime = '';
-            updates.isFixed = true;
-            updates.isDefault = true;
-          }
+          if (!item.type) updates.type = 'REST';
+          if (item.startTime === undefined) updates.startTime = '';
+          if (item.endTime === undefined) updates.endTime = '';
+          if (!item.isFixed) updates.isFixed = true;
+          if (!item.isDefault) updates.isDefault = true;
           if (!item.name) updates.name = 'Off';
           if (!item.color) updates.color = '#10b981';
           if (!item.icon) updates.icon = 'Coffee';
         } else if (item.id === 'st-sick' || item.name.toLowerCase().includes('rapor')) {
-          if (item.type !== 'REST' || item.startTime !== '' || item.endTime !== '' || !item.isFixed || !item.isDefault) {
-            updates.type = 'REST';
-            updates.startTime = '';
-            updates.endTime = '';
-            updates.isFixed = true;
-            updates.isDefault = true;
-          }
+          if (!item.type) updates.type = 'REST';
+          if (item.startTime === undefined) updates.startTime = '';
+          if (item.endTime === undefined) updates.endTime = '';
+          if (!item.isFixed) updates.isFixed = true;
+          if (!item.isDefault) updates.isDefault = true;
           if (!item.name) updates.name = 'Rapor';
           if (!item.color) updates.color = '#ef4444';
           if (!item.icon) updates.icon = 'HeartPulse';
         } else if (item.id === 'st-vacation' || item.id === 'st-leave') {
           if (!item.isSystem) updates.isSystem = true;
           if (!item.systemCategory) updates.systemCategory = 'VACATION';
-          if (item.name === 'Yıllık İzin') updates.name = 'Senelik İzin';
+          if (!item.name) updates.name = 'Senelik İzin';
           if (!item.color) updates.color = '#f59e0b';
           if (!item.icon) updates.icon = 'Palmtree';
         }
@@ -600,25 +596,32 @@ export async function ensureDefaultPatterns() {
 
   // Check active patterns
   const activePatterns = await db.activePatterns.toArray();
-  const currentActiveId = activePatterns[0]?.patternId;
+  const currentActive = activePatterns[0];
+  const currentActiveId = currentActive?.patternId;
 
-  // If no active pattern, or active pattern is invalid or old placeholder, activate D1
-  const isDefaultTeamPattern = currentActiveId && currentActiveId.match(/^pattern-[a-d][1-4]$/);
-  if (!currentActiveId || !isDefaultTeamPattern) {
+  // Check if current active pattern exists in database (either built-in team or custom pattern)
+  const allCurrentPatterns = await db.patterns.toArray();
+  const validPatternIds = new Set(allCurrentPatterns.map((p) => p.id));
+  const patternExists = currentActiveId && validPatternIds.has(currentActiveId);
+
+  // Only fallback to D1 if there is truly no active pattern or it points to a missing/deleted pattern
+  if (!currentActiveId || !patternExists) {
     await db.activePatterns.clear();
     await db.activePatterns.put({
       id: 'default-active-pattern',
       patternId: 'pattern-d1',
       startDate: DEFAULT_PATTERN_START_DATE,
     });
-  } else if (isDefaultTeamPattern) {
-    const currentPattern = activePatterns[0];
-    if (currentPattern.startDate !== DEFAULT_PATTERN_START_DATE && !localStorage.getItem('d_team_start_date_fixed')) {
-      await db.activePatterns.update(currentPattern.id, {
-        startDate: DEFAULT_PATTERN_START_DATE,
-      });
-      localStorage.setItem('d_team_start_date_fixed', 'true');
-    }
+  } else if (
+    currentActiveId === 'pattern-d1' &&
+    currentActive?.startDate !== DEFAULT_PATTERN_START_DATE &&
+    !localStorage.getItem('d_team_start_date_fixed')
+  ) {
+    // One-time historical fix specifically for initial D1 team start date
+    await db.activePatterns.update(currentActive.id, {
+      startDate: DEFAULT_PATTERN_START_DATE,
+    });
+    localStorage.setItem('d_team_start_date_fixed', 'true');
   }
 }
 

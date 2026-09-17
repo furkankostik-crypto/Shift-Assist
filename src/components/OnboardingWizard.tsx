@@ -19,6 +19,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_PATTERN_START_DATE } from '../db/db';
+import { triggerAutoSync } from '../services/syncService';
 import {
   CALENDAR_THEMES,
   SHIFT_DISPLAY_MODES,
@@ -130,6 +131,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
         patternId,
         startDate: DEFAULT_PATTERN_START_DATE,
       });
+      triggerAutoSync();
     } catch (err) {
       console.error('Error setting team pattern in onboarding:', err);
     } finally {
@@ -154,6 +156,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
   const handleFinish = () => {
     setHasCompletedSetup(true);
     setIsSetupModalOpen(false);
+    triggerAutoSync();
     if (onComplete) onComplete();
   };
 

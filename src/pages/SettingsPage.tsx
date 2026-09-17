@@ -13,11 +13,14 @@ import {
   ChevronRight,
   Sparkles,
   Smartphone,
+  RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { getLocalBackupData, restoreCloudDataToLocal, type CloudUserData } from '../services/syncService';
 import { usePwa } from '../utils/pwa';
+import { APP_VERSION, APP_BUILD_DATE } from '../utils/version';
+import { useUpdateCheck } from '../utils/useUpdateCheck';
 
 const SettingsPage = () => {
   const { t, i18n } = useTranslation();
@@ -25,7 +28,11 @@ const SettingsPage = () => {
     theme,
     setTheme,
     setIsSetupModalOpen,
+    setIsUpdateModalOpen,
   } = useAppStore();
+
+  const { status: updateStatus } = useUpdateCheck();
+  const hasUpdate = updateStatus === 'update-available';
 
 
   const [jsonBackupStatus, setJsonBackupStatus] = useState<string | null>(null);
@@ -334,6 +341,51 @@ const SettingsPage = () => {
               className="hidden"
             />
           </div>
+        </section>
+
+        {/* App Version & Updates Section */}
+        <section className="bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center space-x-2">
+                <RefreshCw className={`w-4 h-4 text-primary-500 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
+                <span>Sürüm ve Güncellemeler</span>
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                Shift Assist sürüm durumunu kontrol edin ve en yeni özellikleri kullanın.
+              </p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${
+              hasUpdate
+                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 animate-pulse'
+                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+            }`}>
+              {hasUpdate ? 'Yeni Sürüm Var' : `v${APP_VERSION}`}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 mb-3 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Mevcut Sürüm: v{APP_VERSION}
+              </div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Son Güncelleme Paketi: {APP_BUILD_DATE}
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              {hasUpdate ? 'Güncelleme Bekliyor' : 'En Son Sürüm'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsUpdateModalOpen(true)}
+            className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Güncellemeleri Denetle</span>
+          </button>
         </section>
       </div>
 

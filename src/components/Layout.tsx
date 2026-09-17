@@ -10,6 +10,7 @@ import { OnboardingWizard } from './OnboardingWizard';
 import { LeavePlanningModal } from './LeavePlanningModal';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
 import { IosInstallBanner } from './IosInstallBanner';
+import { VersionUpdateModal } from './VersionUpdateModal';
 
 const Layout = () => {
   const theme = useAppStore(state => state.theme);
@@ -70,6 +71,9 @@ const Layout = () => {
 
       {/* Floating Apple iOS Installation Hint Banner */}
       <IosInstallBanner />
+
+      {/* Global App Version & Update Modal */}
+      <VersionUpdateModal />
 
       {/* Global Toast Notification */}
       <AnimatePresence>

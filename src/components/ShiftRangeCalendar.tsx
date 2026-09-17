@@ -25,8 +25,9 @@ import {
   AlertTriangle,
   Sparkles,
 } from 'lucide-react';
-import type { ShiftPattern, ShiftException, ShiftType, ShiftDay } from '../db/db';
-import { getShiftForDate } from '../utils/shiftLogic';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type ShiftPattern, type ShiftException, type ShiftType, type ShiftDay } from '../db/db';
+import { getShiftForDate, resolveShiftDayWithTypes } from '../utils/shiftLogic';
 import { getHolidayDetail, formatToFullDateFast } from '../utils/holidays';
 import {
   isValidLeaveBoundary,
@@ -55,9 +56,22 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
   currentPattern,
   patternStartDate,
   exceptions = [],
+  shiftTypes: propShiftTypes,
   customAnalysis,
   onPresetDays,
 }) => {
+  const liveShiftTypes = useLiveQuery(async () => db.shiftTypes.toArray(), []);
+  const effectiveShiftTypes = propShiftTypes || liveShiftTypes;
+
+  const shiftTypesMap = useMemo(() => {
+    const map = new Map<string, ShiftType>();
+    if (effectiveShiftTypes) {
+      for (const st of effectiveShiftTypes) {
+        map.set(st.id, st);
+      }
+    }
+    return map;
+  }, [effectiveShiftTypes]);
   // Parse current selected dates
   const parsedStartDate = useMemo(() => {
     try {
@@ -411,10 +425,11 @@ export const ShiftRangeCalendar: React.FC<ShiftRangeCalendarProps> = ({
           const isSun = isSunday(day);
 
           // Shift calculation from active pattern
-          const shiftDay: ShiftDay | null =
+          const rawShiftDay: ShiftDay | null =
             currentPattern && patternStartDate
               ? getShiftForDate(day, currentPattern, patternStartDate)
               : null;
+          const shiftDay = resolveShiftDayWithTypes(rawShiftDay, shiftTypesMap);
 
           // Holiday calculation
           const holidayDetail = getHolidayDetail(day);

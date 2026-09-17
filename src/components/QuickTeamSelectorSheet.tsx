@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_PATTERN_START_DATE, type ShiftPattern } from '../db/db';
 import { hapticTap, hapticSuccess } from '../utils/haptics';
+import { triggerAutoSync } from '../services/syncService';
 
 interface QuickTeamSelectorSheetProps {
   isOpen: boolean;
@@ -113,6 +114,7 @@ export const QuickTeamSelectorSheet: React.FC<QuickTeamSelectorSheetProps> = ({
         });
       });
 
+      triggerAutoSync();
       hapticSuccess();
       if (onPatternChanged) {
         onPatternChanged(targetPattern?.name || patternName);
@@ -144,6 +146,7 @@ export const QuickTeamSelectorSheet: React.FC<QuickTeamSelectorSheetProps> = ({
         });
       });
 
+      triggerAutoSync();
       hapticSuccess();
       if (onPatternChanged) {
         onPatternChanged(pattern.name);

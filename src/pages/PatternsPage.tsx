@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, isValid } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
@@ -15,6 +15,9 @@ import {
   Briefcase,
   Coffee,
   ChevronLeft,
+  Users,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -22,6 +25,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, type ShiftPattern, DEFAULT_PATTERN_START_DATE } from '../db/db';
 import { PatternBuilder } from '../components/PatternBuilder';
 import { SetPatternStartDateModal } from '../components/SetPatternStartDateModal';
+import { ShiftTypesTab } from '../components/ShiftTypesTab';
+import { triggerAutoSync } from '../services/syncService';
+import { hapticTap, hapticSuccess } from '../utils/haptics';
+
+const GROUPS = ['A', 'B', 'C', 'D'] as const;
+type GroupType = typeof GROUPS[number];
+const SUB_TEAMS = [1, 2, 3, 4] as const;
 
 const getPatternColumns = (pattern: ShiftPattern): number => {
   if (pattern.columns && pattern.columns > 0) return pattern.columns;
@@ -53,6 +63,8 @@ const PatternsPage = () => {
   const patterns = dbData?.patterns;
   const activePatterns = dbData?.activePatterns;
 
+  const [activeTab, setActiveTab] = useState<'patterns' | 'shift_types'>('patterns');
+  const [selectedGroup, setSelectedGroup] = useState<GroupType>('A');
   const [isCreating, setIsCreating] = useState(false);
   const [editingPattern, setEditingPattern] = useState<ShiftPattern | null>(null);
 
@@ -63,6 +75,13 @@ const PatternsPage = () => {
   const [patternForStartDate, setPatternForStartDate] = useState<ShiftPattern | null>(null);
 
   const activePatternObj = activePatterns?.[0];
+  const activePattern = patterns?.find((p) => p.id === activePatternObj?.patternId);
+
+  // Custom user patterns (exclude built-in pattern-a1 to pattern-d4)
+  const customPatterns = useMemo(() => {
+    if (!patterns) return [];
+    return patterns.filter((p) => !/^pattern-[a-d][1-4]$/.test(p.id));
+  }, [patterns]);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -91,9 +110,24 @@ const PatternsPage = () => {
       patternId: patternForStartDate.id,
       startDate: startDate,
     });
+    triggerAutoSync();
 
     setPatternForStartDate(null);
     showToast('Vardiya düzeni takvime uygulandı! 🎉');
+  };
+
+  const handleSelectTeam = async (group: GroupType, sub: number) => {
+    hapticTap();
+    const patternId = `pattern-${group.toLowerCase()}${sub}`;
+    await db.activePatterns.clear();
+    await db.activePatterns.add({
+      id: 'default-active-pattern',
+      patternId,
+      startDate: DEFAULT_PATTERN_START_DATE,
+    });
+    triggerAutoSync();
+    hapticSuccess();
+    showToast(`${group}-${sub} Ekibi takvime uygulandı! 🎉`);
   };
 
   const handleDeletePattern = async (pattern: ShiftPattern) => {
@@ -102,6 +136,8 @@ const PatternsPage = () => {
       if (activePatternObj?.patternId === pattern.id) {
         await db.activePatterns.clear();
       }
+      triggerAutoSync();
+      showToast('Düzen silindi.');
     }
   };
 
@@ -128,7 +164,7 @@ const PatternsPage = () => {
       {!isCreating ? (
         <>
           {/* Top Quick Back Navigation & Main Page Header */}
-          <div className="mb-4">
+          <div className="mb-3">
             <div className="mb-2">
               <Link
                 to="/"
@@ -138,80 +174,222 @@ const PatternsPage = () => {
                 <span>Takvime Dön</span>
               </Link>
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
-              {t('patterns')}
-            </h1>
-          </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {t('patterns', 'Vardiyalar')}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Çalışma ekipleri, özel döngüler ve vardiya tipleri
+                </p>
+              </div>
 
-          {/* Action Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                {t('shift_patterns', 'Vardiya Düzenleri')}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('shift_patterns_desc', 'Özel vardiya düzenlerinizi yönetin')}
-              </p>
+              {/* Main Dual Tab Switcher */}
+              <div className="flex items-center space-x-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('patterns')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    activeTab === 'patterns'
+                      ? 'bg-card text-primary-600 dark:text-primary-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Vardiya Düzenleri</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('shift_types')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    activeTab === 'shift_types'
+                      ? 'bg-card text-primary-600 dark:text-primary-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Vardiya Tipleri</span>
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingPattern(null);
-                setIsCreating(true);
-              }}
-              className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center space-x-1.5 cursor-pointer shrink-0 self-start sm:self-auto touch-manipulation"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Yeni Düzen Ekle</span>
-            </button>
           </div>
 
-          <div className="space-y-4 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden min-w-0">
+          {activeTab === 'patterns' ? (
+            <div className="space-y-4 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden min-w-0">
+              {/* 1. Aktif Vardiya Düzeni Kartı */}
+              {activePattern && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-primary-500/10 to-transparent border-2 border-emerald-500/40 shadow-xs space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse shrink-0" />
+                        <span className="text-[10.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                          Şu Anda Takvimde Aktif Düzen
+                        </span>
+                      </div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">
+                        {activePattern.name}
+                      </h2>
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600 dark:text-slate-300">
+                        <span className="font-bold inline-flex items-center gap-1">
+                          <RotateCcw className="w-3 h-3 text-slate-400" />
+                          <span>{activePattern.cycleLength || activePattern.days?.length} Günlük Döngü</span>
+                        </span>
+                        {activePatternObj?.startDate && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-slate-500 dark:text-slate-400">
+                              <CalendarIcon className="w-3 h-3 text-primary-500" />
+                              <span>Başlangıç: {formatStartDate(activePatternObj.startDate)}</span>
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
 
-              {patterns === undefined ? (
-                <div className="flex justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStartDateModal(activePattern)}
+                      className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-black transition-all shadow-2xs cursor-pointer shrink-0 self-start sm:self-auto active:scale-95"
+                    >
+                      Başlangıç Tarihini Değiştir
+                    </button>
+                  </div>
                 </div>
-              ) : (() => {
-                const customPatterns = patterns.filter(p => !/^pattern-[a-d][1-4]$/.test(p.id));
-                return customPatterns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-8 sm:p-10 text-center bg-card rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed">
-                    <div className="bg-primary-50 dark:bg-primary-900/20 p-3.5 rounded-full mb-3 text-primary-500">
+              )}
+
+              {/* 2. 2026 Standart Vardiya Ekipleri (A, B, C, D) */}
+              <div className="bg-card rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-primary-500" />
+                    <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                      2026 Vardiya Ekipleri
+                    </h2>
+                  </div>
+                  <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                    32 Günlük Döngü
+                  </span>
+                </div>
+
+                {/* Group Selector Pills */}
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                  {GROUPS.map((grp) => {
+                    const isGroupSelected = selectedGroup === grp;
+                    const isGroupActive = activePatternObj?.patternId?.startsWith(`pattern-${grp.toLowerCase()}`);
+                    return (
+                      <button
+                        key={grp}
+                        type="button"
+                        onClick={() => setSelectedGroup(grp)}
+                        className={`py-2 px-1 rounded-xl text-center font-black transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 border-2 relative ${
+                          isGroupSelected
+                            ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 shadow-xs ring-2 ring-primary-500/20'
+                            : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="text-base sm:text-lg leading-none">{grp}</span>
+                        <span className="text-[9px] font-bold opacity-80">Grubu</span>
+                        {isGroupActive && (
+                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sub-teams grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {SUB_TEAMS.map((sub) => {
+                    const patternId = `pattern-${selectedGroup.toLowerCase()}${sub}`;
+                    const isTeamActive = activePatternObj?.patternId === patternId;
+
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => handleSelectTeam(selectedGroup, sub)}
+                        className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between text-left active:scale-95 touch-manipulation ${
+                          isTeamActive
+                            ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 shadow-xs ring-2 ring-emerald-500/25'
+                            : 'border-slate-200/90 dark:border-slate-800 bg-card hover:border-primary-400 text-slate-800 dark:text-slate-100 hover:bg-primary-50/30'
+                        }`}
+                      >
+                        <div>
+                          <span className="font-extrabold text-xs block">
+                            {selectedGroup}-{sub} Ekibi
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {isTeamActive ? 'Şu Anda Aktif' : 'Uygulamak için tıkla'}
+                          </span>
+                        </div>
+                        {isTeamActive ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Özel Vardiya Düzenleri Başlığı ve Listesi */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                      Özel Vardiya Düzenleri
+                    </h2>
+                    {customPatterns.length > 0 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        {customPatterns.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingPattern(null);
+                      setIsCreating(true);
+                    }}
+                    className="bg-primary-600 hover:bg-primary-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Yeni Düzen Ekle</span>
+                  </button>
+                </div>
+
+                {customPatterns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-6 sm:p-8 text-center bg-card rounded-2xl border border-slate-200/90 dark:border-slate-800 border-dashed space-y-2.5">
+                    <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-2xl text-primary-500">
                       <CalendarIcon className="w-6 h-6" />
                     </div>
-                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                      {t('no_patterns_yet')}
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-4 max-w-[280px]">
-                      {t('no_patterns_desc')}
-                    </p>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                        Henüz Özel Vardiya Düzeni Eklenmedi
+                      </h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto mt-0.5">
+                        Kendi çalışma sisteminize göre (örneğin 2 Çalış 2 İzin, 24/48 veya özel rotasyonlar) yeni bir döngü oluşturabilirsiniz.
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
                         setEditingPattern(null);
                         setIsCreating(true);
                       }}
-                      className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-black text-xs shadow-xs transition-all active:scale-95 inline-flex items-center space-x-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Yeni Düzen Ekle</span>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>İlk Özel Düzenini Oluştur</span>
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Helper Hint Strip */}
-                    <div className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/80">
-                      <div className="flex items-center space-x-1.5 min-w-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0" />
-                        <span className="truncate">{t('patterns_hint')}</span>
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0 bg-slate-200/70 dark:bg-slate-700/70 px-2 py-0.5 rounded-full">
-                        {t('patterns_count', { count: customPatterns.length })}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      {customPatterns.map((pattern) => {
+                    {customPatterns.map((pattern) => {
                       const isActive = activePatternObj?.patternId === pattern.id;
                       const isExpanded = !!expandedPatternIds[pattern.id];
                       const workCount = pattern.days.filter((d) => d.type === 'WORK').length;
@@ -229,16 +407,13 @@ const PatternsPage = () => {
                         >
                           {/* COLLAPSED / MAIN CARD VIEW */}
                           <div className="p-3.5 sm:p-4 space-y-2.5">
-                            {/* Top Row: Title + Compact Icon Badges (Left) & Edit/Delete when expanded (Right) */}
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap min-w-0">
                                 <h3 className="font-extrabold text-base text-slate-900 dark:text-white truncate">
                                   {pattern.name}
                                 </h3>
 
-                                {/* Compact Icon Stats Badges */}
                                 <div className="flex items-center gap-1.5 text-xs font-bold">
-                                  {/* Total Cycle Length */}
                                   <span
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80"
                                     title={t('cycle_days', { count: pattern.cycleLength })}
@@ -247,7 +422,6 @@ const PatternsPage = () => {
                                     <span>{pattern.cycleLength}</span>
                                   </span>
 
-                                  {/* Work Days */}
                                   <span
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/70"
                                     title={t('work_days_count', { count: workCount })}
@@ -256,7 +430,6 @@ const PatternsPage = () => {
                                     <span>{workCount}</span>
                                   </span>
 
-                                  {/* Rest Days */}
                                   <span
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/70"
                                     title={t('rest_days_count', { count: restCount })}
@@ -267,7 +440,6 @@ const PatternsPage = () => {
                                 </div>
                               </div>
 
-                              {/* Right: Edit & Delete (Only visible when Expanded) */}
                               {isExpanded && (
                                 <div className="flex items-center space-x-1 shrink-0">
                                   <button
@@ -290,7 +462,7 @@ const PatternsPage = () => {
                               )}
                             </div>
 
-                            {/* Mini Shift Rhythm Visual Bar (Visible in Collapsed State) */}
+                            {/* Mini Shift Rhythm Visual Bar */}
                             <div className="pt-0.5">
                               <div className="flex items-center gap-0.5 w-full h-2.5 sm:h-3 rounded-full overflow-hidden p-0.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80">
                                 {pattern.days.map((d, i) => (
@@ -305,7 +477,7 @@ const PatternsPage = () => {
                             </div>
                           </div>
 
-                          {/* EXPANDED DETAILS (Revealed when user clicks "Detayları Göster") */}
+                          {/* EXPANDED DETAILS */}
                           <AnimatePresence>
                             {isExpanded && (
                               <motion.div
@@ -315,7 +487,6 @@ const PatternsPage = () => {
                                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                                 className="overflow-hidden border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 sm:p-4 space-y-3"
                               >
-                                {/* Active Start Date Banner (Inside Details) */}
                                 {isActive && activePatternObj?.startDate && (
                                   <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-card border border-slate-200/90 dark:border-slate-700/80 text-xs shadow-2xs">
                                     <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
@@ -327,19 +498,16 @@ const PatternsPage = () => {
                                         {formatStartDate(activePatternObj.startDate)}
                                       </span>
                                     </div>
-                                    {!/^pattern-[a-d][1-4]$/.test(pattern.id) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenStartDateModal(pattern)}
-                                        className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline cursor-pointer ml-2"
-                                      >
-                                        {t('change_date')}
-                                      </button>
-                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenStartDateModal(pattern)}
+                                      className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline cursor-pointer ml-2"
+                                    >
+                                      {t('change_date')}
+                                    </button>
                                   </div>
                                 )}
 
-                                {/* Structured Cycle Days Grid (Inside Details) */}
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-medium">
                                     <span className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
@@ -403,18 +571,7 @@ const PatternsPage = () => {
                             {!isActive ? (
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  if (/^pattern-[a-d][1-4]$/.test(pattern.id)) {
-                                    await db.activePatterns.clear();
-                                    await db.activePatterns.add({
-                                      id: crypto.randomUUID(),
-                                      patternId: pattern.id,
-                                      startDate: DEFAULT_PATTERN_START_DATE,
-                                    });
-                                  } else {
-                                    handleOpenStartDateModal(pattern);
-                                  }
-                                }}
+                                onClick={() => handleOpenStartDateModal(pattern)}
                                 className="text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-500 px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                               >
                                 <CalendarDays className="w-3.5 h-3.5" />
@@ -426,10 +583,14 @@ const PatternsPage = () => {
                       );
                     })}
                   </div>
-                </div>
-                );
-              })()}
+                )}
+              </div>
             </div>
+          ) : (
+            <div className="animate-in fade-in duration-300">
+              <ShiftTypesTab />
+            </div>
+          )}
         </>
       ) : (
         <PatternBuilder
@@ -474,5 +635,3 @@ const PatternsPage = () => {
 };
 
 export default PatternsPage;
-
-

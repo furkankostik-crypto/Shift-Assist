@@ -1333,6 +1333,31 @@ export const LeavePlanningModal: React.FC<LeavePlanningModalProps> = (props) => 
                       </div>
                     );
                   })
+                ) : !currentPattern || !patternStartDate ? (
+                  <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-amber-500/30 text-xs space-y-3 shadow-sm">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30 text-xl">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                        Henüz Aktif Bir Vardiya Düzeniniz Yok
+                      </h4>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto mt-1">
+                        Akıllı tatil ve izin fırsatlarını hesaplayabilmemiz için çalıştığınız ekibi veya düzeni belirleyin.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleClose();
+                        navigate('/patterns');
+                      }}
+                      className="px-4.5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-black shadow-md shadow-primary-500/25 cursor-pointer inline-flex items-center space-x-1.5 active:scale-95 transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Vardiya Düzeni Seç →</span>
+                    </button>
+                  </div>
                 ) : (
                   <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 text-slate-400 text-xs space-y-2">
                     <p className="font-bold text-slate-600 dark:text-slate-300">

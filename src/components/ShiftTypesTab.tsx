@@ -15,6 +15,7 @@ import { Reorder, useDragControls } from 'framer-motion';
 import { db, type ShiftType, ensureDefaultShiftTypes, isFixedShiftType } from '../db/db';
 import { ShiftTypeModal } from './ShiftTypeModal';
 import { ShiftIcon } from '../utils/shiftIcons';
+import { triggerAutoSync } from '../services/syncService';
 
 interface ShiftTypeItemRowProps {
   st: ShiftType;
@@ -262,6 +263,7 @@ export const ShiftTypesTab = () => {
         await db.shiftTypes.update(newOrder[i].id, { order: i });
       }
     });
+    triggerAutoSync();
   };
 
   const handleEdit = (st: ShiftType) => {
@@ -285,6 +287,7 @@ export const ShiftTypesTab = () => {
     }
     if (confirm(`"${st.name}" vardiya tipini silmek istediğinize emin misiniz?`)) {
       await db.shiftTypes.delete(st.id);
+      triggerAutoSync();
     }
   };
 
@@ -292,6 +295,7 @@ export const ShiftTypesTab = () => {
     if (confirm('Varsayılan vardiya tipleri geri yüklensin mi?')) {
       await db.shiftTypes.clear();
       await ensureDefaultShiftTypes();
+      triggerAutoSync();
     }
   };
 

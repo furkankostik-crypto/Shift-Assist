@@ -27,6 +27,7 @@ import {
   Trash2,
   CalendarDays,
   CalendarCheck,
+  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -41,8 +42,8 @@ import {
   hapticWarning,
 } from '../utils/haptics';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type ShiftException, type ShiftDay } from '../db/db';
-import { getShiftForDate } from '../utils/shiftLogic';
+import { db, type ShiftException, type ShiftDay, type ShiftType } from '../db/db';
+import { getShiftForDate, resolveShiftDayWithTypes } from '../utils/shiftLogic';
 import {
   getHolidayDetail,
   getHolidayBadgeColors,
@@ -60,6 +61,7 @@ import { getShiftIconComponent, ShiftIcon } from '../utils/shiftIcons';
 import { type CalendarThemeId, type ShiftDisplayMode } from '../utils/calendarThemes';
 import { CalendarThemeModal } from '../components/CalendarThemeModal';
 import { QuickTeamSelectorSheet } from '../components/QuickTeamSelectorSheet';
+import { triggerAutoSync } from '../services/syncService';
 
 export type LeaveDayRole =
   | 'LEAVE'
@@ -94,7 +96,8 @@ function getShiftVisualProps(
   shiftType?: 'WORK' | 'REST',
   exceptionType?: string,
   shiftIcon?: string,
-  customVacationIcon?: string
+  customVacationIcon?: string,
+  customSickIcon?: string
 ) {
   if (exceptionType === 'VACATION') {
     return {
@@ -104,7 +107,11 @@ function getShiftVisualProps(
     };
   }
   if (exceptionType === 'SICK') {
-    return { icon: HeartPulse, isRest: true, label: 'Rapor' };
+    return {
+      icon: getShiftIconComponent(customSickIcon || 'HeartPulse', 'REST', 'Rapor'),
+      isRest: true,
+      label: 'Rapor',
+    };
   }
   if (exceptionType === 'DUTY') {
     return { icon: Briefcase, isRest: false, label: 'Görev' };
@@ -262,6 +269,7 @@ const DayCell = React.memo(
     isLoading = false,
     onSelectDate,
   }: DayCellProps) => {
+    const dayStr = format(day, 'yyyy-MM-dd');
     const isHoliday = Boolean(holidayDetail);
     const isDirectVacation = exception?.type === 'VACATION';
 
@@ -320,10 +328,27 @@ const DayCell = React.memo(
       onSelectDate(day);
     }, [day, onSelectDate]);
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      },
+      [handleClick]
+    );
+
+    const cellAriaLabel = `${dayStr}${shiftDay?.name ? ' - ' + shiftDay.name : ''}${holidayDetail ? ' - ' + holidayDetail.name : ''}`;
+
     // THEME 1: SEAMLESS (Bitişik / Blok)
     if (calendarTheme === 'seamless') {
       return (
         <div
+          role="button"
+          tabIndex={0}
+          data-date={dayStr}
+          aria-label={cellAriaLabel}
+          onKeyDown={handleKeyDown}
           onClick={handleClick}
           style={{
             backgroundColor: !isLoading && (hasShift || isHoliday) ? cellBg : undefined,
@@ -461,6 +486,11 @@ const DayCell = React.memo(
 
       return (
         <div
+          role="button"
+          tabIndex={0}
+          data-date={dayStr}
+          aria-label={cellAriaLabel}
+          onKeyDown={handleKeyDown}
           onClick={handleClick}
           style={{
             backgroundColor: !isLoading ? cardBgColor : undefined,
@@ -646,6 +676,11 @@ const DayCell = React.memo(
 
       return (
         <div
+          role="button"
+          tabIndex={0}
+          data-date={dayStr}
+          aria-label={cellAriaLabel}
+          onKeyDown={handleKeyDown}
           onClick={handleClick}
           style={{
             borderColor: !isLoading ? neonBorder : undefined,
@@ -773,6 +808,11 @@ const DayCell = React.memo(
     if (calendarTheme === 'compact-bar') {
       return (
         <div
+          role="button"
+          tabIndex={0}
+          data-date={dayStr}
+          aria-label={cellAriaLabel}
+          onKeyDown={handleKeyDown}
           onClick={handleClick}
           style={{
             borderColor: isVacation ? customVacationColor : undefined,
@@ -901,6 +941,11 @@ const DayCell = React.memo(
     // THEME 3: MINIMAL CAPSULE (Kapsül & Minimal) - Default Fallback
     return (
       <div
+        role="button"
+        tabIndex={0}
+        data-date={dayStr}
+        aria-label={cellAriaLabel}
+        onKeyDown={handleKeyDown}
         onClick={handleClick}
         style={{
           borderColor: isVacation ? customVacationColor : undefined,
@@ -1184,6 +1229,7 @@ interface SelectedDayDetailCardProps {
   customVacationName: string;
   customHolidayColor: string;
   customHolidayIcon: string;
+  customSickIcon?: string;
   isOpen: boolean;
   dateLocale: any;
   t: any;
@@ -1206,6 +1252,7 @@ const SelectedDayDetailCard = React.memo(
     customVacationName,
     customHolidayColor,
     customHolidayIcon,
+    customSickIcon,
     isOpen,
     dateLocale,
     t,
@@ -1402,7 +1449,7 @@ const SelectedDayDetailCard = React.memo(
                         {selectedException.type === 'VACATION' ? (
                           <ShiftIcon icon={customVacationIcon} className="w-4 h-4 text-white" />
                         ) : selectedException.type === 'SICK' ? (
-                          <HeartPulse className="w-4 h-4" />
+                          <ShiftIcon icon={customSickIcon || 'HeartPulse'} className="w-4 h-4 text-white" />
                         ) : selectedException.type === 'DUTY' ? (
                           <Briefcase className="w-4 h-4" />
                         ) : (
@@ -1577,8 +1624,8 @@ SelectedDayDetailCard.displayName = 'SelectedDayDetailCard';
 // ---------------------------------------------------------------------------
 // CalendarPage Main Component: Continuous Stream of Unique Weeks
 // ---------------------------------------------------------------------------
-const PAST_MONTHS = 6;
-const FUTURE_MONTHS = 8;
+const PAST_MONTHS = 12;
+const FUTURE_MONTHS = 36;
 
 export const CalendarPage = () => {
   const { t, i18n } = useTranslation();
@@ -1600,6 +1647,8 @@ export const CalendarPage = () => {
   const [currentMonthIndex, setCurrentMonthIndex] = useState(PAST_MONTHS);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isTeamSelectorOpen, setIsTeamSelectorOpen] = useState(false);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const dateLocale = i18n.language.startsWith('tr') ? tr : enUS;
@@ -1671,6 +1720,17 @@ export const CalendarPage = () => {
   const exceptions = dbData?.exceptions;
   const shiftTypes = dbData?.shiftTypes;
 
+  // O(1) Lookup Map for all user-customized Shift Types
+  const shiftTypesMap = useMemo(() => {
+    const map = new Map<string, ShiftType>();
+    if (shiftTypes) {
+      for (const st of shiftTypes) {
+        map.set(st.id, st);
+      }
+    }
+    return map;
+  }, [shiftTypes]);
+
   // User-customized Vacation & Holiday System Types
   const vacationShiftType = useMemo(
     () =>
@@ -1688,6 +1748,22 @@ export const CalendarPage = () => {
     [shiftTypes]
   );
 
+  const sickShiftType = useMemo(
+    () =>
+      shiftTypes?.find(
+        (st) => st.id === 'st-sick' || st.name.toLowerCase().includes('rapor')
+      ),
+    [shiftTypes]
+  );
+
+  const excuseShiftType = useMemo(
+    () =>
+      shiftTypes?.find(
+        (st) => st.id === 'st-excuse' || st.name.toLowerCase().includes('mazeret')
+      ),
+    [shiftTypes]
+  );
+
   const customVacationColor = vacationShiftType?.color || '#f59e0b';
   const customVacationIcon = vacationShiftType?.icon || 'Palmtree';
   const customVacationName = vacationShiftType?.name || 'Yıllık İzin';
@@ -1695,6 +1771,13 @@ export const CalendarPage = () => {
   const customHolidayColor = holidayShiftType?.color || '#e11d48';
   const customHolidayIcon = holidayShiftType?.icon || 'CalendarHeart';
   const customHolidayName = holidayShiftType?.name || 'Resmi Tatil';
+
+  const customSickColor = sickShiftType?.color || '#ef4444';
+  const customSickIcon = sickShiftType?.icon || 'HeartPulse';
+  const customSickName = sickShiftType?.name || 'Rapor';
+
+  const customExcuseColor = excuseShiftType?.color || '#06b6d4';
+  const customExcuseName = excuseShiftType?.name || 'Mazeret';
 
   const activePatternObj = activePatterns?.[0];
   const currentPattern = useMemo(
@@ -1903,10 +1986,11 @@ export const CalendarPage = () => {
         const dayStr = formatToFullDateFast(day);
         const dayNumber = String(day.getDate());
         const exception = exceptionsMap.get(dayStr);
-        const shiftDay =
+        const rawShiftDay =
           activePatternObj && currentPattern
             ? getShiftForDate(day, currentPattern as any, activePatternObj.startDate)
             : null;
+        const shiftDay = resolveShiftDayWithTypes(rawShiftDay, shiftTypesMap);
         const holidayDetail = getHolidayDetail(day);
         const holidayColors = holidayDetail ? getHolidayBadgeColors(holidayDetail.type) : null;
         const leaveVisual = previewDaysMap.get(dayStr) || savedVacationsMap.get(dayStr) || null;
@@ -1923,7 +2007,7 @@ export const CalendarPage = () => {
         };
       });
     });
-  }, [allWeeks, activePatternObj, currentPattern, exceptionsMap, previewDaysMap, savedVacationsMap]);
+  }, [allWeeks, activePatternObj, currentPattern, exceptionsMap, previewDaysMap, savedVacationsMap, shiftTypesMap]);
 
   const todayStr = useMemo(() => formatToFullDateFast(new Date()), []);
   const selectedDateStr = formatToFullDateFast(selectedDate);
@@ -2244,10 +2328,11 @@ export const CalendarPage = () => {
   };
 
   // Selected date details
-  const selectedShift =
+  const rawSelectedShift =
     activePatternObj && currentPattern
       ? getShiftForDate(selectedDate, currentPattern as any, activePatternObj.startDate)
       : null;
+  const selectedShift = resolveShiftDayWithTypes(rawSelectedShift, shiftTypesMap);
 
   const selectedException = exceptionsMap.get(selectedDateStr);
   const selectedHolidayDetail = getHolidayDetail(selectedDate);
@@ -2267,32 +2352,33 @@ export const CalendarPage = () => {
           selectedShift?.type,
           selectedException?.type || (selectedLeaveVisual ? 'VACATION' : undefined),
           selectedShift?.icon,
-          customVacationIcon
+          customVacationIcon,
+          customSickIcon
         )
       : null;
 
   // Quick action: Add/Remove single-day vacation, sick leave, or excuse exception
   const handleAddQuickException = async (type: 'VACATION' | 'SICK' | 'OTHER' | 'EXCUSE', weight?: number) => {
     try {
-      let exName = 'Mazeret İzni';
+      let exName = customExcuseName || 'Mazeret İzni';
       if (type === 'VACATION') exName = customVacationName;
-      if (type === 'SICK') exName = 'Rapor';
+      if (type === 'SICK') exName = customSickName;
       if (type === 'OTHER') {
         const customName = window.prompt('Özel Gün veya Yıldönümü adı:', 'Yıldönümü');
         if (!customName) return; // User cancelled
         exName = customName;
       }
       if (type === 'EXCUSE') {
-        if (weight === 0.5) exName = 'Yarım Gün Mazeret';
-        else if (weight === 0.25) exName = 'Saatlik Mazeret';
+        if (weight === 0.5) exName = `Yarım Gün ${customExcuseName || 'Mazeret'}`;
+        else if (weight === 0.25) exName = `Saatlik ${customExcuseName || 'Mazeret'}`;
       }
 
       const exColor =
         type === 'VACATION'
           ? customVacationColor
           : type === 'SICK'
-          ? '#ef4444'
-          : '#06b6d4';
+          ? customSickColor
+          : customExcuseColor;
 
       await db.exceptions.put({
         id: `ex-${selectedDateStr}`,
@@ -2302,6 +2388,7 @@ export const CalendarPage = () => {
         color: exColor,
         weight: weight || 1,
       });
+      triggerAutoSync();
       hapticSuccess();
       showToast(`${exName} takvime kaydedildi.`);
     } catch (err) {
@@ -2313,6 +2400,7 @@ export const CalendarPage = () => {
     try {
       if (selectedException) {
         await db.exceptions.delete(selectedException.id);
+        triggerAutoSync();
         hapticWarning();
         showToast('İstisna / İzin kaydı kaldırıldı.');
       }
@@ -2348,6 +2436,7 @@ export const CalendarPage = () => {
             }
           }
         });
+        triggerAutoSync();
       }
 
       clearLeavePreview();
@@ -2394,14 +2483,24 @@ export const CalendarPage = () => {
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <div className="flex items-baseline space-x-1 px-0.5">
-              <h2 className="text-xl sm:text-2xl font-black capitalize tracking-tight text-slate-900 dark:text-slate-100">
+            <button
+              type="button"
+              onClick={() => {
+                setPickerYear(currentVisibleMonth.getFullYear());
+                setIsMonthPickerOpen(true);
+              }}
+              className="flex items-baseline space-x-1 px-1.5 py-0.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group select-none text-left touch-manipulation"
+              title="Hızlı Ay ve Yıl Seç"
+              aria-label="Hızlı Ay ve Yıl Seç"
+            >
+              <h2 className="text-xl sm:text-2xl font-black capitalize tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
                 {monthName}
               </h2>
-              <span className="text-sm sm:text-base font-bold text-slate-400 dark:text-slate-500">
+              <span className="text-sm sm:text-base font-bold text-slate-400 dark:text-slate-500 group-hover:text-primary-500">
                 {yearNumber}
               </span>
-            </div>
+              <ChevronDown className="w-3.5 h-3.5 ml-0.5 text-slate-400 group-hover:text-primary-500 transition-transform opacity-70" />
+            </button>
 
             <button
               onClick={goToNextMonth}
@@ -2429,7 +2528,9 @@ export const CalendarPage = () => {
               onClick={() => setIsTeamSelectorOpen(true)}
               className="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/40 text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-primary-300 dark:hover:border-primary-700 transition-all flex items-center space-x-1.5 shadow-2xs shrink-0 cursor-pointer"
               title="Aktif Ekip / Düzen Değiştir"
+              aria-label="Aktif Ekip / Düzen Değiştir"
             >
+              <Users className="w-3.5 h-3.5 text-primary-500 shrink-0" />
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>
                 {currentPattern.name
@@ -2445,8 +2546,9 @@ export const CalendarPage = () => {
               onClick={() => setIsTeamSelectorOpen(true)}
               className="text-[11px] font-black px-2.5 py-1 rounded-full bg-primary-500/10 hover:bg-primary-500/20 text-primary-700 dark:text-primary-300 border border-primary-200/50 dark:border-primary-800/50 transition-all flex items-center space-x-1 shadow-2xs shrink-0 cursor-pointer animate-pulse"
               title="Ekip / Düzen Seç"
+              aria-label="Ekip / Düzen Seç"
             >
-              <Users className="w-3 h-3 shrink-0" />
+              <Users className="w-3.5 h-3.5 shrink-0" />
               <span>Ekip Seç</span>
             </button>
           )}
@@ -2688,6 +2790,7 @@ export const CalendarPage = () => {
         customVacationName={customVacationName}
         customHolidayColor={customHolidayColor}
         customHolidayIcon={customHolidayIcon}
+        customSickIcon={customSickIcon}
         isOpen={isDayDetailOpen}
         dateLocale={dateLocale}
         t={t}
@@ -2695,6 +2798,102 @@ export const CalendarPage = () => {
         onAddQuickException={handleAddQuickException}
         onRemoveQuickException={handleRemoveQuickException}
       />
+
+      {/* Quick Month & Year Picker Modal */}
+      {isMonthPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pt-[calc(var(--sat)+1rem)] pb-[calc(var(--sab)+1rem)] px-3 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsMonthPickerOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative bg-card dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-sm shadow-2xl z-10 space-y-3.5 my-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ay ve Yıl Seçimi"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center space-x-2">
+                <CalendarIcon className="w-4 h-4 text-primary-500" />
+                <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                  Ay ve Yıl Seçimi
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMonthPickerOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Kapat"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Year Selector */}
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5 px-0.5">
+                Yıl
+              </span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[2025, 2026, 2027, 2028].map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => setPickerYear(yr)}
+                    className={`py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      pickerYear === yr
+                        ? 'bg-primary-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {yr}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Month Grid (12 Months) */}
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5 px-0.5">
+                Ay ({pickerYear})
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  'Ocak', 'Şubat', 'Mart',
+                  'Nisan', 'Mayıs', 'Haziran',
+                  'Temmuz', 'Ağustos', 'Eylül',
+                  'Ekim', 'Kasım', 'Aralık'
+                ].map((name, idx) => {
+                  const isCurrent =
+                    currentVisibleMonth.getFullYear() === pickerYear &&
+                    currentVisibleMonth.getMonth() === idx;
+
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        const targetDate = new Date(pickerYear, idx, 1);
+                        handleSelectDate(targetDate);
+                        setIsMonthPickerOpen(false);
+                      }}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                        isCurrent
+                          ? 'bg-primary-600 text-white font-black shadow-xs ring-2 ring-primary-400/40'
+                          : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Calendar Theme Customizer Modal */}
       <CalendarThemeModal

@@ -11,6 +11,7 @@ import { tr } from 'date-fns/locale';
 import { db, type ShiftPattern, type ShiftDay, type ShiftException } from '../db/db';
 import { getShiftForDate } from './shiftLogic';
 import { getHolidayDetail, formatToFullDateFast, type HolidayDetail } from './holidays';
+import { triggerAutoSync } from '../services/syncService';
 
 export type LeavePeriod = 'WINTER_1' | 'SUMMER' | 'WINTER_2';
 
@@ -860,6 +861,7 @@ export async function applyLeaveOpportunityToCalendar(
       });
     }
   });
+  triggerAutoSync();
 }
 
 /**
@@ -881,4 +883,5 @@ export async function removeLeaveOpportunityFromCalendar(
       }
     }
   });
+  triggerAutoSync();
 }

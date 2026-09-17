@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { X } from 'lucide-react';
+import { notifyUpdateAvailable } from '../utils/useUpdateCheck';
 
 function ReloadPrompt() {
   const {
@@ -15,6 +17,12 @@ function ReloadPrompt() {
       console.log('SW registration error', error);
     },
   });
+
+  useEffect(() => {
+    if (needRefresh) {
+      notifyUpdateAvailable();
+    }
+  }, [needRefresh]);
 
   const close = () => {
     setOfflineReady(false);

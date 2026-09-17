@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Check, Clock, Briefcase, Coffee, Sparkles, Lock } from 'lucide-react';
 import { db, type ShiftType, getFixedShiftInfo } from '../db/db';
+import { triggerAutoSync } from '../services/syncService';
 import {
   SHIFT_ICONS,
   ShiftIcon,
@@ -141,6 +142,7 @@ export const ShiftTypeModal = ({ shiftType, onClose }: ShiftTypeModalProps) => {
       });
     }
 
+    triggerAutoSync();
     onClose();
   };
 

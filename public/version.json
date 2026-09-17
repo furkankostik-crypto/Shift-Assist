@@ -1,0 +1,12 @@
+{
+  "version": "1.4.0",
+  "buildDate": "2026-09-17",
+  "minSupportedVersion": "1.0.0",
+  "features": [
+    "Sürüm denetleme ve güncelleme yönetim merkezi",
+    "2026 Vardiya Matrisi ve tek tıkla hazır ekip şablonları",
+    "Çift sekmeli (Düzenler & Tipler) gelişmiş vardiya yönetimi",
+    "Akıllı Senelik İzin ve Tatil Planlayıcı optimizasyonları",
+    "Uçtan uca otomatik tarayıcı test paketi ve sıfır hata güvencesi"
+  ]
+}

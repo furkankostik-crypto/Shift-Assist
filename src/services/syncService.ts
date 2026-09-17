@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { firestore } from './firebase';
+import { firestore, auth } from './firebase';
 import {
   db,
   type ShiftType,
@@ -8,6 +8,28 @@ import {
   type ShiftException,
 } from '../db/db';
 import { useAppStore } from '../store/useAppStore';
+
+export const LOCAL_MODIFIED_KEY = 'vardiya_last_local_modified';
+
+/**
+ * Yerel veritabanında veya ayarlarda bir değişiklik yapıldığında yerel zaman damgasını günceller.
+ */
+export function markLocalModified(timestamp = new Date().toISOString()): string {
+  try {
+    localStorage.setItem(LOCAL_MODIFIED_KEY, timestamp);
+  } catch (e) {
+    console.warn('Could not save local modified timestamp:', e);
+  }
+  return timestamp;
+}
+
+export function getLocalLastModified(): string | null {
+  try {
+    return localStorage.getItem(LOCAL_MODIFIED_KEY);
+  } catch {
+    return null;
+  }
+}
 
 export interface CloudUserData {
   version: number;
@@ -40,11 +62,13 @@ export async function getLocalBackupData(): Promise<Omit<CloudUserData, 'email' 
   ]);
 
   const appState = useAppStore.getState();
+  const now = new Date().toISOString();
+  const lastMod = getLocalLastModified() || now;
 
   return {
     version: 1,
-    lastModified: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    lastModified: lastMod,
+    updatedAt: now,
     shiftTypes,
     patterns,
     activePatterns,
@@ -68,9 +92,14 @@ export async function uploadLocalDataToCloud(
 ): Promise<boolean> {
   if (!firestore) return false;
 
+  const now = new Date().toISOString();
+  markLocalModified(now);
+
   const localData = await getLocalBackupData();
   const payload: CloudUserData = {
     ...localData,
+    lastModified: now,
+    updatedAt: now,
     email: userProfile?.email || null,
     displayName: userProfile?.displayName || null,
   };
@@ -132,14 +161,19 @@ export async function restoreCloudDataToLocal(cloudData: CloudUserData): Promise
     }
   }
 
+  // Senkronize edilen zaman damgasını yerelde sakla
+  const synctimestamp = cloudData.updatedAt || cloudData.lastModified || new Date().toISOString();
+  markLocalModified(synctimestamp);
+
   return true;
 }
 
 /**
  * Bulut ve yerel arasındaki akıllı eşitleme (Smart Sync)
- * - Tarayıcı geçmişi silinmişse (yerelde istisna ve desen az/boşsa): Buluttan geri yükler.
- * - Bulutta henüz veri yoksa: Yereldeki verileri buluta yükler.
- * - Her iki tarafta da veri varsa: Tarihe göre en güncel olanı korur.
+ * - Bulutta henüz veri yoksa: Yerel verileri buluta yükler.
+ * - Kullanıcı bu tarayıcıda/cihazda ilk defa oturum açmışsa (yerel değişiklik geçmişi yoksa): Buluttan geri yükler.
+ * - Her iki tarafta da kayıt varsa: Tarihe göre (updatedAt / lastModified) en güncel olanı korur.
+ *   Asla izin sayısı sıfır diye kullanıcının seçtiği ekip ve tema ezilmez!
  */
 export async function smartSync(
   userId: string,
@@ -152,29 +186,41 @@ export async function smartSync(
   const userDocRef = doc(firestore, 'users', userId);
   const docSnap = await getDoc(userDocRef);
 
-  // Bulutta veri yoksa doğrudan yereli yükle
+  // Bulutta henüz veri yoksa doğrudan yerel verileri buluta yükle
   if (!docSnap.exists()) {
     await uploadLocalDataToCloud(userId, userProfile);
     return { status: 'uploaded', message: 'Yerel verileriniz ilk kez buluta kaydedildi.' };
   }
 
   const cloudData = docSnap.data() as CloudUserData;
+  const localModified = getLocalLastModified();
+  const cloudModified = cloudData.updatedAt || cloudData.lastModified;
 
-  // Yerel veri durumunu kontrol et
-  const localExceptionsCount = await db.exceptions.count();
-  const localPatternsCount = await db.patterns.count();
+  // 1. Cihazda yerel değişiklik geçmişi yoksa (yeni cihaz / tarayıcı verileri sıfırlanmış):
+  // Buluttaki verileri cihaza geri yükle
+  if (!localModified) {
+    const cloudHasContent =
+      (cloudData.activePatterns && cloudData.activePatterns.length > 0) ||
+      (cloudData.exceptions && cloudData.exceptions.length > 0) ||
+      cloudData.appSettings;
 
-  // Tarayıcı geçmişi temizlenmişse (yerelde istisna yok veya sadece varsayılan şablonlar varsa)
-  // ve bulutta kaydedilmiş istisna/özel veri varsa -> Buluttan geri yükle
-  const cloudHasData = (cloudData.exceptions && cloudData.exceptions.length > 0) ||
-                       (cloudData.patterns && cloudData.patterns.length > 0);
-
-  if ((localExceptionsCount === 0 || localPatternsCount <= 16) && cloudHasData) {
-    await restoreCloudDataToLocal(cloudData);
-    return { status: 'restored', message: 'Buluttaki verileriniz bu cihaza başarıyla geri yüklendi.' };
+    if (cloudHasContent) {
+      await restoreCloudDataToLocal(cloudData);
+      return { status: 'restored', message: 'Buluttaki verileriniz bu cihaza başarıyla geri yüklendi.' };
+    }
   }
 
-  // Aksi takdirde yerel verileri bulut ile güncelle
+  // 2. Zaman damgası karşılaştırması:
+  const localTime = localModified ? new Date(localModified).getTime() : 0;
+  const cloudTime = cloudModified ? new Date(cloudModified).getTime() : 0;
+
+  // Buluttaki veri yerelden belirgin şekilde daha yeniyse (> 2 saniye fark), başka cihazda yapılmış yeni değişiklikleri al
+  if (cloudTime > localTime + 2000) {
+    await restoreCloudDataToLocal(cloudData);
+    return { status: 'restored', message: 'Buluttaki güncel verileriniz bu cihaza aktarıldı.' };
+  }
+
+  // Yereldeki veri daha güncel veya eşitse, yereli buluta aktar
   await uploadLocalDataToCloud(userId, userProfile);
   return { status: 'uploaded', message: 'Verileriniz bulut ile eşitlendi.' };
 }
@@ -185,7 +231,7 @@ let autoSyncTimeout: any = null;
 export function scheduleAutoSync(
   userId: string,
   userProfile?: { email?: string | null; displayName?: string | null },
-  delayMs = 3000
+  delayMs = 2000
 ) {
   if (autoSyncTimeout) {
     clearTimeout(autoSyncTimeout);
@@ -199,4 +245,21 @@ export function scheduleAutoSync(
       console.warn('Otomatik senkronizasyon başarısız oldu:', err);
     }
   }, delayMs);
+}
+
+/**
+ * Oturum açmış kullanıcı varsa veri değişikliklerinde (ekip, tema, izin vb.)
+ * otomatik arka plan eşitlemesini sessizce tetikler.
+ */
+export function triggerAutoSync(delayMs = 1500) {
+  markLocalModified();
+  if (!auth || !auth.currentUser) return;
+  scheduleAutoSync(
+    auth.currentUser.uid,
+    {
+      email: auth.currentUser.email,
+      displayName: auth.currentUser.displayName,
+    },
+    delayMs
+  );
 }
