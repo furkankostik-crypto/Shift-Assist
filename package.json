@@ -1,7 +1,7 @@
 {
   "name": "shift-assist",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.4.2",
   "type": "module",
   "scripts": {
     "dev": "node scripts/mobile-dev.mjs",
@@ -9,11 +9,9 @@
     "dev:mobile": "node scripts/mobile-dev.mjs",
     "dev:tunnel": "code tunnel",
     "build": "tsc -b && vite build",
-    "generate:icons": "node scripts/process-logo.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node scripts/e2e-audit.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,14 +1,13 @@
 {
-  "version": "1.4.1",
+  "version": "1.4.2",
   "buildDate": "2026-09-17",
   "minSupportedVersion": "1.0.0",
   "features": [
-    "Bulut Hesabı ve Eşitleme Yönetim Merkezi (Ayarlar sekmesinde tek tıkla senkronizasyon)",
-    "Akıllı Koruma Kalkanı (Smart Guard) & Çift Yönlü Kayıpsız Eşitleme (Smart Merge)",
-    "Sürüm denetleme ve güncelleme yönetim merkezi",
-    "2026 Vardiya Matrisi ve tek tıkla hazır ekip şablonları",
-    "Çift sekmeli (Düzenler & Tipler) gelişmiş vardiya yönetimi",
-    "Akıllı Senelik İzin ve Tatil Planlayıcı optimizasyonları",
-    "Uçtan uca otomatik tarayıcı test paketi ve sıfır hata güvencesi"
+    "Takvimde Bugün butonuna tıklandığında ilgili aya akıcı ve hatasız kaydırma",
+    "Gün detay kartı kapatıldığında takvimin alakasız aya atlama sorununun giderilmesi (ResizeObserver re-anchoring)",
+    "Sol üstteki Ay ve Yıl Seçicinin dinamik yıllar ve yerelleştirilmiş ay isimleriyle yenilenmesi",
+    "Ay seçildiğinde istenmeyen gün kartı açılışının engellenmesi",
+    "Ay ve hafta satırlarının esnek yükseklik senkronizasyon optimizasyonları",
+    "Bulut Hesabı ve Eşitleme Yönetim Merkezi & Akıllı Koruma Kalkanı (Smart Guard)"
   ]
 }

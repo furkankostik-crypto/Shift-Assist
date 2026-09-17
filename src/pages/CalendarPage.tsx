@@ -1290,7 +1290,7 @@ const SelectedDayDetailCard = React.memo(
 
     return (
       <div
-        className={`shrink-0 px-3 transition-all duration-200 ease-out ${
+        className={`shrink-0 px-3 transition-[opacity,transform] duration-200 ease-out ${
           isOpen ? 'opacity-100 translate-y-0 pb-[calc(0.5rem+var(--sab))]' : 'opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden'
         }`}
       >
@@ -1671,6 +1671,20 @@ export const CalendarPage = () => {
   }, [baseMonth]);
 
   const currentVisibleMonth = months[currentMonthIndex] || baseMonth;
+
+  // Dynamically compute available years based on the continuous month stream
+  const availableYears = useMemo(() => {
+    const set = new Set<number>();
+    months.forEach((m) => set.add(m.getFullYear()));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [months]);
+
+  // Localized month names (Ocak/January..Aralık/December) for month picker
+  const monthPickerNames = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) =>
+      format(new Date(2026, i, 1), 'MMMM', { locale: dateLocale })
+    );
+  }, [dateLocale]);
 
   // Generate continuous stream of unique weeks (every date appears EXACTLY ONCE!)
   const { allWeeks, monthWeekIndexMap, weekToMonthMap } = useMemo(() => {
@@ -2075,6 +2089,55 @@ export const CalendarPage = () => {
     }
   }, [monthWeekIndexMap]);
 
+  // Stable re-anchoring when container height changes (detail card open/close, screen resize, orientation)
+  const lastObservedHeightRef = useRef<number>(0);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = Math.round(entry.contentRect.height);
+        if (newHeight <= 0) continue;
+
+        const prevHeight = lastObservedHeightRef.current;
+        lastObservedHeightRef.current = newHeight;
+
+        // Skip initial zero measurement
+        if (prevHeight === 0) continue;
+
+        // Only handle meaningful height changes (e.g. card toggling or window resize)
+        if (Math.abs(prevHeight - newHeight) > 2) {
+          if (isProgrammaticScroll.current) return;
+
+          const activeIdx = currentMonthIndexRef.current;
+          const targetWeekIdx = monthWeekIndexMap.get(activeIdx);
+          if (targetWeekIdx !== undefined) {
+            isProgrammaticScroll.current = true;
+            container.style.scrollSnapType = 'none';
+
+            const targetElement = container.children[targetWeekIdx] as HTMLElement | undefined;
+            const targetTop = targetElement
+              ? targetElement.offsetTop
+              : Math.round(targetWeekIdx * (newHeight / 6));
+
+            container.scrollTop = targetTop;
+
+            setTimeout(() => {
+              if (containerRef.current) {
+                containerRef.current.style.scrollSnapType = 'y mandatory';
+              }
+              isProgrammaticScroll.current = false;
+            }, 60);
+          }
+        }
+      }
+    });
+
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [monthWeekIndexMap]);
+
   // Automatic smart scrolling when leavePreview is set
   useEffect(() => {
     if (!leavePreview) return;
@@ -2249,8 +2312,11 @@ export const CalendarPage = () => {
     hapticSelection();
     const today = new Date();
     setSelectedDate(today);
+    isProgrammaticScroll.current = true;
     handleOpenDetail();
-    scrollToMonth(PAST_MONTHS, true);
+    requestAnimationFrame(() => {
+      scrollToMonth(PAST_MONTHS, true);
+    });
   }, [handleOpenDetail, scrollToMonth, setSelectedDate]);
 
   const goToPreviousMonth = useCallback(() => {
@@ -2315,11 +2381,30 @@ export const CalendarPage = () => {
       if (!isSameMonth(date, currentMonthStart)) {
         const targetIdx = months.findIndex((m) => isSameMonth(m, targetMonthStart));
         if (targetIdx !== -1) {
-          scrollToMonth(targetIdx, true);
+          isProgrammaticScroll.current = true;
+          requestAnimationFrame(() => {
+            scrollToMonth(targetIdx, true);
+          });
         }
       }
     },
     [baseMonth, handleOpenDetail, months, scrollToMonth, setSelectedDate]
+  );
+
+  const handleSelectMonthFromPicker = useCallback(
+    (targetIdx: number) => {
+      if (targetIdx < 0 || targetIdx >= months.length) return;
+      hapticSelection();
+      if (isDayDetailOpen) {
+        setIsDayDetailOpen(false);
+      }
+      setIsMonthPickerOpen(false);
+      isProgrammaticScroll.current = true;
+      requestAnimationFrame(() => {
+        scrollToMonth(targetIdx, true);
+      });
+    },
+    [isDayDetailOpen, months.length, scrollToMonth, setIsDayDetailOpen]
   );
 
   const showToast = (msg: string) => {
@@ -2836,12 +2921,18 @@ export const CalendarPage = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5 px-0.5">
                 Yıl
               </span>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[2025, 2026, 2027, 2028].map((yr) => (
+              <div
+                className="grid gap-1.5"
+                style={{ gridTemplateColumns: `repeat(${availableYears.length}, minmax(0, 1fr))` }}
+              >
+                {availableYears.map((yr) => (
                   <button
                     key={yr}
                     type="button"
-                    onClick={() => setPickerYear(yr)}
+                    onClick={() => {
+                      hapticTap();
+                      setPickerYear(yr);
+                    }}
                     className={`py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                       pickerYear === yr
                         ? 'bg-primary-600 text-white shadow-xs'
@@ -2860,12 +2951,11 @@ export const CalendarPage = () => {
                 Ay ({pickerYear})
               </span>
               <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  'Ocak', 'Şubat', 'Mart',
-                  'Nisan', 'Mayıs', 'Haziran',
-                  'Temmuz', 'Ağustos', 'Eylül',
-                  'Ekim', 'Kasım', 'Aralık'
-                ].map((name, idx) => {
+                {monthPickerNames.map((name, idx) => {
+                  const targetIdx = months.findIndex(
+                    (m) => m.getFullYear() === pickerYear && m.getMonth() === idx
+                  );
+                  const isAvailable = targetIdx !== -1;
                   const isCurrent =
                     currentVisibleMonth.getFullYear() === pickerYear &&
                     currentVisibleMonth.getMonth() === idx;
@@ -2874,15 +2964,14 @@ export const CalendarPage = () => {
                     <button
                       key={name}
                       type="button"
-                      onClick={() => {
-                        const targetDate = new Date(pickerYear, idx, 1);
-                        handleSelectDate(targetDate);
-                        setIsMonthPickerOpen(false);
-                      }}
-                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                        isCurrent
-                          ? 'bg-primary-600 text-white font-black shadow-xs ring-2 ring-primary-400/40'
-                          : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900'
+                      disabled={!isAvailable}
+                      onClick={() => handleSelectMonthFromPicker(targetIdx)}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center capitalize ${
+                        !isAvailable
+                          ? 'opacity-25 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600'
+                          : isCurrent
+                          ? 'bg-primary-600 text-white font-black shadow-xs ring-2 ring-primary-400/40 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 cursor-pointer'
                       }`}
                     >
                       {name}
