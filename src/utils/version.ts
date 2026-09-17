@@ -1,15 +1,15 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.2';
+export const APP_VERSION = '1.4.3';
 export const APP_BUILD_DATE = '17.09.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  'Takvimde "Bugün" butonuna basıldığında ilgili aya hedeflenen akıcı ve hatasız kaydırma sağlandı.',
-  'Gün detay kartı kapatıldığında takvimin alakasız bir aya atlama sorunu ResizeObserver re-anchoring ile kalıcı olarak giderildi.',
-  'Sol üstteki Ay & Yıl Seçici yenilendi; dinamik yıl aralığı, yerelleştirilmiş ay isimleri ve pürüzsüz geçiş getirildi.',
-  'Ay seçildiğinde istenmeyen gün detay kartının açılması engellendi, doğrudan hedeflenen aya geçiş sağlandı.',
-  'Ay ve hafta satırlarının esnek yükseklik senkronizasyonu ve CSS geçişleri optimize edildi.',
+  'Takvimde geçerli ayın dışındayken tek dokunuşla geri dönüş sağlayan yüzen "Bugüne Dön" aksiyon butonu (Floating Action Pill) eklendi.',
+  'Hızlı Ay ve Yıl Seçici modal penceresine doğrudan bugüne atlama kısayolu ("Bugün") eklendi.',
+  'Seçili gün detay kartına bugüne odaklanmayı sağlayan pratik "Bugüne Git" butonu getirildi.',
+  'Kompakt mobil başlık düzeni oluşturularak aktif ekip/düzen etiketinin dar ekranlarda taşması ve sıkışması önlendi.',
+  'Takvim navigasyonu ve gün detay kartı geçişleri tam optimize edildi.',
   'Bulut Hesabı & Gerçek Zamanlı Eşitleme ve Akıllı Koruma Kalkanı (Smart Guard) kararlılığı korundu.',
 ];
 

@@ -1,13 +1,13 @@
 {
-  "version": "1.4.2",
+  "version": "1.4.3",
   "buildDate": "2026-09-17",
   "minSupportedVersion": "1.0.0",
   "features": [
-    "Takvimde Bugün butonuna tıklandığında ilgili aya akıcı ve hatasız kaydırma",
-    "Gün detay kartı kapatıldığında takvimin alakasız aya atlama sorununun giderilmesi (ResizeObserver re-anchoring)",
-    "Sol üstteki Ay ve Yıl Seçicinin dinamik yıllar ve yerelleştirilmiş ay isimleriyle yenilenmesi",
-    "Ay seçildiğinde istenmeyen gün kartı açılışının engellenmesi",
-    "Ay ve hafta satırlarının esnek yükseklik senkronizasyon optimizasyonları",
+    "Takvimde geçerli ayın dışındayken tek dokunuşla geri dönüş sağlayan yüzen 'Bugüne Dön' butonu (Floating Action Pill)",
+    "Hızlı Ay ve Yıl Seçici penceresinde doğrudan geçerli aya atlama kısayolu",
+    "Gün detay kartı açıkken bugüne anında odaklanmayı sağlayan 'Bugüne Git' butonu",
+    "Kompakt mobil başlık düzeni ve aktif ekip etiketinin dar ekranlara tam uyumu",
+    "Takvimde bugün odağına akıcı ve hatasız kaydırma stabilizasyonu",
     "Bulut Hesabı ve Eşitleme Yönetim Merkezi & Akıllı Koruma Kalkanı (Smart Guard)"
   ]
 }

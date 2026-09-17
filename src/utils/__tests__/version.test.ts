@@ -9,7 +9,7 @@ import {
 
 describe('version utilities', () => {
   it('has valid APP_VERSION and highlights', () => {
-    expect(APP_VERSION).toBe('1.4.2');
+    expect(APP_VERSION).toBe('1.4.3');
     expect(CURRENT_RELEASE_HIGHLIGHTS.length).toBeGreaterThan(0);
   });
 
