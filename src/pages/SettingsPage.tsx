@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import {
   Moon,
   Sun,
@@ -14,6 +15,11 @@ import {
   Sparkles,
   Smartphone,
   RefreshCw,
+  Cloud,
+  User as UserIcon,
+  LogOut,
+  LogIn,
+  ShieldCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -31,9 +37,18 @@ const SettingsPage = () => {
     setIsUpdateModalOpen,
   } = useAppStore();
 
+  const {
+    user,
+    openAuthModal,
+    logout,
+    syncNow,
+    restoreNow,
+    syncStatus,
+    lastSyncedAt,
+  } = useAuthStore();
+
   const { status: updateStatus } = useUpdateCheck();
   const hasUpdate = updateStatus === 'update-available';
-
 
   const [jsonBackupStatus, setJsonBackupStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +121,143 @@ const SettingsPage = () => {
       <h1 className="text-2xl font-bold">{t('settings')}</h1>
 
       <div className="space-y-6">
+        {/* Cloud Account & Synchronization Management */}
+        <section className="bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-2xs">
+                <Cloud className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <span>Bulut Hesabı & Eşitleme</span>
+                  {user && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                      Aktif
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {user
+                    ? 'Verileriniz bulut hesabınızla gerçek zamanlı eşitleniyor.'
+                    : 'Tüm cihazlarınızdan erişmek için hesabınızı bağlayın.'}
+                </p>
+              </div>
+            </div>
+
+            {user && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Oturumu kapatmak istediğinize emin misiniz?')) {
+                    logout();
+                  }
+                }}
+                className="text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Oturumu Kapat"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Çıkış</span>
+              </button>
+            )}
+          </div>
+
+          {user ? (
+            <div className="space-y-3 pt-1">
+              {/* User profile banner */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-3 min-w-0">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || 'Profil'}
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-primary-500/30 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                      {user.displayName ? user.displayName.slice(0, 1).toUpperCase() : <UserIcon className="w-5 h-5" />}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
+                      {user.displayName || 'Vardiya Kullanıcısı'}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">
+                      {user.email}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="flex items-center space-x-1.5 text-xs text-slate-600 dark:text-slate-300 font-bold">
+                    <span className={`w-2 h-2 rounded-full ${syncStatus === 'syncing' ? 'bg-amber-500 animate-pulse' : syncStatus === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                    <span>{syncStatus === 'syncing' ? 'Eşitleniyor...' : syncStatus === 'error' ? 'Hata Oluştu' : 'Eşitlendi'}</span>
+                  </div>
+                  {lastSyncedAt && (
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                      Son: {lastSyncedAt}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => syncNow()}
+                  disabled={syncStatus === 'syncing'}
+                  className="py-2.5 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                  <span>{syncStatus === 'syncing' ? 'Eşitleniyor...' : 'Şimdi Buluta Eşitle'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Buluttaki verileri bu cihaza geri yüklemek istediğinize emin misiniz?')) {
+                      restoreNow();
+                    }
+                  }}
+                  disabled={syncStatus === 'syncing'}
+                  className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-100/90 dark:bg-slate-900/60 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span>Buluttan Geri Yükle</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-1">
+              <div className="p-3 bg-amber-500/10 dark:bg-amber-500/5 rounded-xl border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Oturum açmadığınızda verileriniz yalnızca bu tarayıcının yerel hafızasında tutulur. Telefonunuz ve bilgisayarınız arasında otomatik eşitleme için giriş yapabilirsiniz.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('login')}
+                  className="py-2.5 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center space-x-2 transition-all shadow-xs cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Google / E-posta ile Giriş Yap</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('register')}
+                  className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                >
+                  <span>Ücretsiz Hesap Oluştur</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Compact Setup Wizard & PWA Launcher Cards */}
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Setup Wizard Re-run Card */}

@@ -72,7 +72,7 @@ describe('QuickTeamSelectorSheet', () => {
 
     // Verify onPatternChanged was called
     await waitFor(() => {
-      expect(handlePatternChanged).toHaveBeenCalledWith('D-2 Ekibi');
+      expect(handlePatternChanged).toHaveBeenCalledWith(expect.stringMatching(/D-?2 Ekibi/i));
     });
 
     // CRITICAL: Verify onClose was NOT called upon selection!

@@ -1,8 +1,10 @@
 {
-  "version": "1.4.0",
+  "version": "1.4.1",
   "buildDate": "2026-09-17",
   "minSupportedVersion": "1.0.0",
   "features": [
+    "Bulut Hesabı ve Eşitleme Yönetim Merkezi (Ayarlar sekmesinde tek tıkla senkronizasyon)",
+    "Akıllı Koruma Kalkanı (Smart Guard) & Çift Yönlü Kayıpsız Eşitleme (Smart Merge)",
     "Sürüm denetleme ve güncelleme yönetim merkezi",
     "2026 Vardiya Matrisi ve tek tıkla hazır ekip şablonları",
     "Çift sekmeli (Düzenler & Tipler) gelişmiş vardiya yönetimi",
