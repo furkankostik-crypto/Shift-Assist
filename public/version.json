@@ -1,13 +1,12 @@
 {
-  "version": "1.4.3",
-  "buildDate": "2026-09-17",
+  "version": "1.4.4",
+  "buildDate": "2026-09-18",
   "minSupportedVersion": "1.0.0",
   "features": [
-    "Takvimde geçerli ayın dışındayken tek dokunuşla geri dönüş sağlayan yüzen 'Bugüne Dön' butonu (Floating Action Pill)",
-    "Hızlı Ay ve Yıl Seçici penceresinde doğrudan geçerli aya atlama kısayolu",
-    "Gün detay kartı açıkken bugüne anında odaklanmayı sağlayan 'Bugüne Git' butonu",
-    "Kompakt mobil başlık düzeni ve aktif ekip etiketinin dar ekranlara tam uyumu",
-    "Takvimde bugün odağına akıcı ve hatasız kaydırma stabilizasyonu",
-    "Bulut Hesabı ve Eşitleme Yönetim Merkezi & Akıllı Koruma Kalkanı (Smart Guard)"
+    "Vardiya Düzenleri sayfasında katlanabilir ve kompakt 2026 ekip seçici kartı",
+    "Ekip butonları tek satır 4'lü grid yapısına dönüştürülerek mobil kullanım kolaylaştırıldı",
+    "Standart 2026 ekiplerinde kafa karıştıran başlangıç tarihi değiştirme butonu gizlendi",
+    "Aktif ekip için otomatik grup algılama ve doğrudan o ekibe odaklanma",
+    "Tüm arayüzde 'Grup' yerine 'Ekip' ve 'A1' formatında terminoloji standardı"
   ]
 }

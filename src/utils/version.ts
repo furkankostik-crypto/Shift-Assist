@@ -1,16 +1,15 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.3';
-export const APP_BUILD_DATE = '17.09.2026';
+export const APP_VERSION = '1.4.4';
+export const APP_BUILD_DATE = '18.09.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  'Takvimde geçerli ayın dışındayken tek dokunuşla geri dönüş sağlayan yüzen "Bugüne Dön" aksiyon butonu (Floating Action Pill) eklendi.',
-  'Hızlı Ay ve Yıl Seçici modal penceresine doğrudan bugüne atlama kısayolu ("Bugün") eklendi.',
-  'Seçili gün detay kartına bugüne odaklanmayı sağlayan pratik "Bugüne Git" butonu getirildi.',
-  'Kompakt mobil başlık düzeni oluşturularak aktif ekip/düzen etiketinin dar ekranlarda taşması ve sıkışması önlendi.',
-  'Takvim navigasyonu ve gün detay kartı geçişleri tam optimize edildi.',
-  'Bulut Hesabı & Gerçek Zamanlı Eşitleme ve Akıllı Koruma Kalkanı (Smart Guard) kararlılığı korundu.',
+  'Vardiya Düzenleri sayfasında katlanabilir ve kompakt 2026 ekip seçici kartı eklendi.',
+  'Ekip butonları tek satır 4\'lü grid yapısına dönüştürülerek mobilde tek bakışta seçim kolaylaştırıldı.',
+  'Standart 2026 ekiplerinde kafa karıştıran başlangıç tarihi değiştirme butonu gizlendi.',
+  'Takvimdeki aktif ekip otomatik algılanarak doğrudan ilgili ekibin sekmesine odaklanma sağlandı.',
+  'Tüm arayüzde "Grup" terimi yerine standart "Ekip" ve "A1" formatı benimsendi.',
 ];
 
 export interface VersionInfo {

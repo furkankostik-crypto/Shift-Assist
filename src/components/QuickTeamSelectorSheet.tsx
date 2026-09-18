@@ -268,10 +268,10 @@ export const QuickTeamSelectorSheet: React.FC<QuickTeamSelectorSheetProps> = ({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <span>1. Adım: Grubu Seçin</span>
+                    <span>1. Adım: Ekibi Seçin</span>
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    Seçili: <strong className="text-primary-600 dark:text-primary-400 font-black">{selectedGroup} Grubu</strong>
+                    Seçili: <strong className="text-primary-600 dark:text-primary-400 font-black">{selectedGroup} Ekibi</strong>
                   </span>
                 </div>
 
@@ -297,7 +297,7 @@ export const QuickTeamSelectorSheet: React.FC<QuickTeamSelectorSheetProps> = ({
                         }`}
                       >
                         <span className="text-xl leading-none">{group}</span>
-                        <span className="text-[10px] font-bold opacity-80 mt-1">Grubu</span>
+                        <span className="text-[10px] font-bold opacity-80 mt-1">Ekibi</span>
                         {isGroupCurrentlyActive && (
                           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
                         )}

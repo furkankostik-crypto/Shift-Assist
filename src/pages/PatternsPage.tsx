@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, isValid } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
@@ -18,6 +18,7 @@ import {
   Users,
   Clock,
   Sparkles,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -65,6 +66,7 @@ const PatternsPage = () => {
 
   const [activeTab, setActiveTab] = useState<'patterns' | 'shift_types'>('patterns');
   const [selectedGroup, setSelectedGroup] = useState<GroupType>('A');
+  const [isTeamSelectorOpen, setIsTeamSelectorOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [editingPattern, setEditingPattern] = useState<ShiftPattern | null>(null);
 
@@ -76,6 +78,21 @@ const PatternsPage = () => {
 
   const activePatternObj = activePatterns?.[0];
   const activePattern = patterns?.find((p) => p.id === activePatternObj?.patternId);
+
+  const activePatternId = activePatternObj?.patternId;
+  const defaultPatternMatch = activePatternId?.match(/^pattern-([a-d])([1-4])$/);
+  const matchedGroup = defaultPatternMatch ? (defaultPatternMatch[1].toUpperCase() as GroupType) : null;
+  const isDefaultActivePattern = !!defaultPatternMatch;
+  const activeDefaultTeamCode = defaultPatternMatch
+    ? `${defaultPatternMatch[1].toUpperCase()}${defaultPatternMatch[2]}`
+    : null;
+
+  // Auto-sync selected group with currently active default pattern
+  useEffect(() => {
+    if (matchedGroup) {
+      setSelectedGroup(matchedGroup);
+    }
+  }, [matchedGroup]);
 
   // Custom user patterns (exclude built-in pattern-a1 to pattern-d4)
   const customPatterns = useMemo(() => {
@@ -127,7 +144,7 @@ const PatternsPage = () => {
     });
     triggerAutoSync();
     hapticSuccess();
-    showToast(`${group}-${sub} Ekibi takvime uygulandı! 🎉`);
+    showToast(`${group}${sub} Ekibi takvime uygulandı! 🎉`);
   };
 
   const handleDeletePattern = async (pattern: ShiftPattern) => {
@@ -247,92 +264,158 @@ const PatternsPage = () => {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenStartDateModal(activePattern)}
-                      className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-black transition-all shadow-2xs cursor-pointer shrink-0 self-start sm:self-auto active:scale-95"
-                    >
-                      Başlangıç Tarihini Değiştir
-                    </button>
+                    {!isDefaultActivePattern && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenStartDateModal(activePattern)}
+                        className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-black transition-all shadow-2xs cursor-pointer shrink-0 self-start sm:self-auto active:scale-95"
+                      >
+                        Başlangıç Tarihini Değiştir
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* 2. 2026 Standart Vardiya Ekipleri (A, B, C, D) */}
-              <div className="bg-card rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4 text-primary-500" />
-                    <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
-                      2026 Vardiya Ekipleri
-                    </h2>
-                  </div>
-                  <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border border-primary-500/20">
-                    32 Günlük Döngü
-                  </span>
-                </div>
-
-                {/* Group Selector Pills */}
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-                  {GROUPS.map((grp) => {
-                    const isGroupSelected = selectedGroup === grp;
-                    const isGroupActive = activePatternObj?.patternId?.startsWith(`pattern-${grp.toLowerCase()}`);
-                    return (
-                      <button
-                        key={grp}
-                        type="button"
-                        onClick={() => setSelectedGroup(grp)}
-                        className={`py-2 px-1 rounded-xl text-center font-black transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 border-2 relative ${
-                          isGroupSelected
-                            ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 shadow-xs ring-2 ring-primary-500/20'
-                            : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className="text-base sm:text-lg leading-none">{grp}</span>
-                        <span className="text-[9px] font-bold opacity-80">Grubu</span>
-                        {isGroupActive && (
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Sub-teams grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  {SUB_TEAMS.map((sub) => {
-                    const patternId = `pattern-${selectedGroup.toLowerCase()}${sub}`;
-                    const isTeamActive = activePatternObj?.patternId === patternId;
-
-                    return (
-                      <button
-                        key={sub}
-                        type="button"
-                        onClick={() => handleSelectTeam(selectedGroup, sub)}
-                        className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between text-left active:scale-95 touch-manipulation ${
-                          isTeamActive
-                            ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 shadow-xs ring-2 ring-emerald-500/25'
-                            : 'border-slate-200/90 dark:border-slate-800 bg-card hover:border-primary-400 text-slate-800 dark:text-slate-100 hover:bg-primary-50/30'
-                        }`}
-                      >
-                        <div>
-                          <span className="font-extrabold text-xs block">
-                            {selectedGroup}-{sub} Ekibi
-                          </span>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">
-                            {isTeamActive ? 'Şu Anda Aktif' : 'Uygulamak için tıkla'}
+              {/* 2. 2026 Standart Vardiya Ekipleri (Özet / Açılır Seçici) */}
+              {!isTeamSelectorOpen ? (
+                <div className="bg-card rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/60 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 border border-primary-500/20">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                            2026 Vardiya Ekipleri
+                          </h2>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                            32 Günlük Döngü
                           </span>
                         </div>
-                        {isTeamActive ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        ) : (
-                          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center gap-1.5">
+                          {activeDefaultTeamCode ? (
+                            <>
+                              <span>Seçili Ekip:</span>
+                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                                {activeDefaultTeamCode} Ekibi
+                              </span>
+                            </>
+                          ) : (
+                            <span>Standart ekip seçin veya değiştirin</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        hapticTap();
+                        if (defaultPatternMatch) {
+                          setSelectedGroup(defaultPatternMatch[1].toUpperCase() as GroupType);
+                        }
+                        setIsTeamSelectorOpen(true);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-black transition-all shadow-xs shrink-0 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span>Ekip Değiştir</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-card rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-primary-500" />
+                      <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                        2026 Vardiya Ekipleri
+                      </h2>
+                      <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                        32 Günlük Döngü
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        hapticTap();
+                        setIsTeamSelectorOpen(false);
+                      }}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Kapat</span>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Group Selector Pills: A Ekibi, B Ekibi, C Ekibi, D Ekibi */}
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                    {GROUPS.map((grp) => {
+                      const isGroupSelected = selectedGroup === grp;
+                      const isGroupActive = activePatternObj?.patternId?.startsWith(`pattern-${grp.toLowerCase()}`);
+                      return (
+                        <button
+                          key={grp}
+                          type="button"
+                          onClick={() => {
+                            hapticTap();
+                            setSelectedGroup(grp);
+                          }}
+                          className={`py-2 px-1 rounded-xl text-center font-black transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 border-2 relative active:scale-95 ${
+                            isGroupSelected
+                              ? 'border-primary-500 bg-primary-50/80 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 shadow-xs ring-2 ring-primary-500/20'
+                              : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="text-base sm:text-lg leading-none">{grp}</span>
+                          <span className="text-[10px] font-bold opacity-80">Ekibi</span>
+                          {isGroupActive && (
+                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sub-teams single row: A1, A2, A3, A4 or D1, D2, D3, D4 */}
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-1">
+                    {SUB_TEAMS.map((sub) => {
+                      const patternId = `pattern-${selectedGroup.toLowerCase()}${sub}`;
+                      const isTeamActive = activePatternObj?.patternId === patternId;
+                      const teamCode = `${selectedGroup}${sub}`;
+
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => handleSelectTeam(selectedGroup, sub)}
+                          className={`py-2.5 sm:py-3 px-1 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 active:scale-95 touch-manipulation relative ${
+                            isTeamActive
+                              ? 'border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-100 shadow-xs ring-2 ring-emerald-500/25'
+                              : 'border-slate-200/90 dark:border-slate-800 bg-card hover:border-primary-400 text-slate-800 dark:text-slate-100 hover:bg-primary-50/30'
+                          }`}
+                        >
+                          <span className={`text-sm sm:text-base font-black ${isTeamActive ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-slate-100'}`}>
+                            {teamCode}
+                          </span>
+                          {isTeamActive ? (
+                            <span className="flex items-center gap-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                              <span>Aktif</span>
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                              Seç
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* 3. Özel Vardiya Düzenleri Başlığı ve Listesi */}
               <div className="space-y-3 pt-1">
