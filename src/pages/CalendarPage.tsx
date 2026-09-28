@@ -2039,14 +2039,14 @@ export const CalendarPage = () => {
   const todayStr = useMemo(() => formatToFullDateFast(new Date()), []);
   const selectedDateStr = formatToFullDateFast(selectedDate);
 
-  // Compute active month from container scroll position (zero layout thrash)
+  // Compute active month from container scroll position using exact DOM offsetTop
   const updateActiveMonthFromScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight || 1;
-    const rowHeight = clientHeight / 6;
+    const fallbackRowHeight = clientHeight / 6;
 
     let bestIdx = currentMonthIndexRef.current;
     let minDiff = Infinity;
@@ -2054,7 +2054,10 @@ export const CalendarPage = () => {
     for (let i = 0; i < months.length; i++) {
       const wIdx = monthWeekIndexMap.get(i);
       if (wIdx !== undefined) {
-        const targetTop = Math.round(wIdx * rowHeight);
+        const targetElement = container.children[wIdx] as HTMLElement | undefined;
+        const targetTop = targetElement
+          ? targetElement.offsetTop
+          : Math.round(wIdx * fallbackRowHeight);
         const diff = Math.abs(targetTop - scrollTop);
         if (diff < minDiff) {
           minDiff = diff;
@@ -2191,6 +2194,9 @@ export const CalendarPage = () => {
     const handleScroll = () => {
       if (isProgrammaticScroll.current) return;
 
+      // Immediately update active month when crossing midpoint during swipe/momentum
+      updateActiveMonthFromScroll();
+
       if (scrollTimer.current !== null) {
         clearTimeout(scrollTimer.current);
       }
@@ -2199,6 +2205,12 @@ export const CalendarPage = () => {
           updateActiveMonthFromScroll();
         }
       }, 50);
+    };
+
+    const handleScrollEnd = () => {
+      if (!isProgrammaticScroll.current) {
+        updateActiveMonthFromScroll();
+      }
     };
 
     const handleInteraction = () => {
@@ -2213,11 +2225,13 @@ export const CalendarPage = () => {
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('scrollend', handleScrollEnd, { passive: true });
     container.addEventListener('touchstart', handleInteraction, { passive: true });
     container.addEventListener('wheel', handleInteraction, { passive: true });
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scrollend', handleScrollEnd);
       container.removeEventListener('touchstart', handleInteraction);
       container.removeEventListener('wheel', handleInteraction);
       if (scrollTimer.current !== null) {
@@ -2289,13 +2303,15 @@ export const CalendarPage = () => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(1, elapsed / duration);
         const ease = easeOutCubic(progress);
+        const liveTargetScrollTop = getTargetScrollTop();
+        const liveDistance = liveTargetScrollTop - startScrollTop;
 
-        container.scrollTop = Math.round(startScrollTop + initialDistance * ease);
+        container.scrollTop = Math.round(startScrollTop + liveDistance * ease);
 
         if (progress < 1) {
           animationFrameRef.current = requestAnimationFrame(step);
         } else {
-          container.scrollTop = targetScrollTop;
+          container.scrollTop = liveTargetScrollTop;
           container.style.scrollSnapType = 'y mandatory';
           animationFrameRef.current = null;
           setTimeout(() => {
@@ -2557,7 +2573,11 @@ export const CalendarPage = () => {
       : 'gap-1 sm:gap-1.5 px-1.5 pt-0.5 pb-1 sm:pb-1.5';
 
   return (
-    <div className="pt-1.5 pb-0 h-full flex flex-col select-none overflow-hidden relative">
+    <div
+      className={`pt-1.5 h-full flex flex-col select-none overflow-hidden relative ${
+        !isDayDetailOpen ? 'pb-[var(--sab)]' : 'pb-0'
+      }`}
+    >
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-[calc(0.75rem+var(--sat))] left-1/2 -translate-x-1/2 z-[70] bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-800 dark:border-slate-200 flex items-center space-x-2 text-xs sm:text-sm font-bold backdrop-blur-md animate-in fade-in slide-in-from-top-2">
@@ -2820,8 +2840,6 @@ export const CalendarPage = () => {
         onTouchStart={handleCalendarTouchStart}
         onTouchEnd={handleCalendarTouchEnd}
         className={`relative flex-1 min-h-[280px] overflow-y-auto snap-y snap-mandatory overscroll-y-none touch-pan-y gpu-scroll-container flex flex-col ${
-          !isDayDetailOpen ? 'pb-[var(--sab)]' : ''
-        } ${
           calendarTheme === 'seamless'
             ? 'border-b border-l border-slate-200/70 dark:border-slate-800/70'
             : 'border-b border-slate-200/70 dark:border-slate-800/70'

@@ -1,12 +1,11 @@
 {
-  "version": "1.4.4",
-  "buildDate": "2026-09-18",
+  "version": "1.4.5",
+  "buildDate": "2026-09-28",
   "minSupportedVersion": "1.0.0",
   "features": [
-    "Vardiya Düzenleri sayfasında katlanabilir ve kompakt 2026 ekip seçici kartı",
-    "Ekip butonları tek satır 4'lü grid yapısına dönüştürülerek mobil kullanım kolaylaştırıldı",
-    "Standart 2026 ekiplerinde kafa karıştıran başlangıç tarihi değiştirme butonu gizlendi",
-    "Aktif ekip için otomatik grup algılama ve doğrudan o ekibe odaklanma",
-    "Tüm arayüzde 'Grup' yerine 'Ekip' ve 'A1' formatında terminoloji standardı"
+    "Apple (iOS Safari & PWA) cihazlarda sonraki aya kaydırınca yeni ay günlerinin aktif görünüme geçmeme sorunu giderildi",
+    "Takvim kaydırma ve ay geçişlerinde gerçek DOM konum (offsetTop) tabanlı sıfır sapmalı senkronizasyon sağlandı",
+    "Apple Safe Area (Home Bar) boşluğu kaydırma alanı dışına taşınarak 6 haftalık takvim satırlarının tam eşit bölünmesi sağlandı",
+    "iOS WebKit üzerinde scroll-snap ve katman boyama (repaint) gecikmesine yol açan CSS kısıtlamaları optimize edildi"
   ]
 }

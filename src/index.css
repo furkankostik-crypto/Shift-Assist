@@ -85,11 +85,9 @@ body {
   touch-action: pan-y;
 }
 
-/* Modern Rendering Containment for Offscreen Elements */
+/* Rendering Containment for Week Rows (iOS Safari scroll-snap & repaint safe) */
 .contain-week-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 100% auto 56px;
-  contain: layout style paint;
+  contain: layout style;
 }
 
 .contain-card-item {

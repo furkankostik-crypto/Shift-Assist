@@ -1,15 +1,14 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.4';
-export const APP_BUILD_DATE = '18.09.2026';
+export const APP_VERSION = '1.4.5';
+export const APP_BUILD_DATE = '28.09.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  'Vardiya Düzenleri sayfasında katlanabilir ve kompakt 2026 ekip seçici kartı eklendi.',
-  'Ekip butonları tek satır 4\'lü grid yapısına dönüştürülerek mobilde tek bakışta seçim kolaylaştırıldı.',
-  'Standart 2026 ekiplerinde kafa karıştıran başlangıç tarihi değiştirme butonu gizlendi.',
-  'Takvimdeki aktif ekip otomatik algılanarak doğrudan ilgili ekibin sekmesine odaklanma sağlandı.',
-  'Tüm arayüzde "Grup" terimi yerine standart "Ekip" ve "A1" formatı benimsendi.',
+  'Apple (iOS Safari & PWA) cihazlarda sonraki aya kaydırınca yeni ay günlerinin aktif görünüme geçmeme sorunu giderildi.',
+  'Takvim kaydırma ve ay geçişlerinde gerçek DOM konum (offsetTop) tabanlı sıfır sapmalı senkronizasyon sağlandı.',
+  'Apple Safe Area (Home Bar) boşluğu kaydırma alanı dışına taşınarak 6 haftalık takvim satırlarının tam eşit bölünmesi sağlandı.',
+  'iOS WebKit üzerinde scroll-snap ve katman boyama (repaint) gecikmesine yol açan CSS kısıtlamaları optimize edildi.',
 ];
 
 export interface VersionInfo {
