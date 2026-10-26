@@ -1,4 +1,10 @@
-export type HolidayType = 'national' | 'religious' | 'eve' | 'commemoration' | 'special';
+export type HolidayType =
+  | 'national'
+  | 'religious'
+  | 'eve'
+  | 'commemoration'
+  | 'special'
+  | 'school';
 
 export interface HolidayDetail {
   name: string;
@@ -228,6 +234,17 @@ const UNIFIED_HOLIDAY_BADGE_COLORS: HolidayBadgeColors = {
   tagText: 'text-rose-800 dark:text-rose-200',
 };
 
+const SCHOOL_HOLIDAY_BADGE_COLORS: HolidayBadgeColors = {
+  badgeBg: 'bg-sky-600 dark:bg-sky-500',
+  badgeText: 'text-white',
+  border: 'border-sky-300 dark:border-sky-800',
+  softBg: 'bg-sky-50 dark:bg-sky-950/40',
+  textColor: 'text-sky-600 dark:text-sky-400',
+  accentColor: '#0284c7',
+  tagBg: 'bg-sky-100 dark:bg-sky-900/60',
+  tagText: 'text-sky-800 dark:text-sky-200',
+};
+
 // O(1) Pre-indexed Hash Maps for instantaneous holiday lookup
 const dynamicHolidaysMap = new Map<string, HolidayDetail>();
 for (const h of dynamicHolidays) {
@@ -306,20 +323,376 @@ export type HolidayBadgeColors = {
 };
 
 // Visual helpers for holiday styling with static singleton references
-export function getHolidayBadgeColors(_type?: HolidayType): HolidayBadgeColors {
+export function getHolidayBadgeColors(type?: HolidayType): HolidayBadgeColors {
+  if (type === 'school') return SCHOOL_HOLIDAY_BADGE_COLORS;
   return UNIFIED_HOLIDAY_BADGE_COLORS;
 }
 
 export interface YearHolidayItem {
   id: string;
   dateStr: string; // yyyy-MM-dd
+  endDateStr?: string; // yyyy-MM-dd for period ranges
   date: Date;
+  endDate?: Date;
+  daysCount?: number;
   name: string;
   shortName: string;
   type: HolidayType;
   isHalfDay: boolean;
   isOfficial: boolean;
   description: string;
+  isRange?: boolean;
+}
+
+export interface SchoolHolidayPeriod {
+  id: string;
+  name: string;
+  shortName: string;
+  startDateStr: string; // yyyy-MM-dd
+  endDateStr: string;   // yyyy-MM-dd
+  startDate: Date;
+  endDate: Date;
+  daysCount: number;
+  description: string;
+  type: 'school';
+  termType: 'semester' | 'midterm1' | 'midterm2' | 'summer';
+  academicYear: string;
+}
+
+interface RawSchoolPeriod {
+  name: string;
+  shortName: string;
+  startDateStr: string;
+  endDateStr: string;
+  termType: 'semester' | 'midterm1' | 'midterm2' | 'summer';
+  academicYear: string;
+  description: string;
+}
+
+// Turkish Ministry of National Education (MEB) Academic Break Calendars (2024 - 2030)
+const schoolHolidaysData: RawSchoolPeriod[] = [
+  // 2024
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2024-01-20',
+    endDateStr: '2024-02-04',
+    termType: 'semester',
+    academicYear: '2023-2024',
+    description: 'MEB 2023-2024 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2024-04-06',
+    endDateStr: '2024-04-14',
+    termType: 'midterm2',
+    academicYear: '2023-2024',
+    description: 'MEB 2023-2024 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2024-06-14',
+    endDateStr: '2024-09-08',
+    termType: 'summer',
+    academicYear: '2023-2024',
+    description: 'MEB 2023-2024 Yaz Tatili • 87 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2024-11-09',
+    endDateStr: '2024-11-17',
+    termType: 'midterm1',
+    academicYear: '2024-2025',
+    description: 'MEB 2024-2025 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2025
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2025-01-18',
+    endDateStr: '2025-02-02',
+    termType: 'semester',
+    academicYear: '2024-2025',
+    description: 'MEB 2024-2025 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2025-03-29',
+    endDateStr: '2025-04-06',
+    termType: 'midterm2',
+    academicYear: '2024-2025',
+    description: 'MEB 2024-2025 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2025-06-20',
+    endDateStr: '2025-09-07',
+    termType: 'summer',
+    academicYear: '2024-2025',
+    description: 'MEB 2024-2025 Yaz Tatili • 80 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2025-11-08',
+    endDateStr: '2025-11-16',
+    termType: 'midterm1',
+    academicYear: '2025-2026',
+    description: 'MEB 2025-2026 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2026
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2026-01-17',
+    endDateStr: '2026-02-01',
+    termType: 'semester',
+    academicYear: '2025-2026',
+    description: 'MEB 2025-2026 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2026-04-04',
+    endDateStr: '2026-04-12',
+    termType: 'midterm2',
+    academicYear: '2025-2026',
+    description: 'MEB 2025-2026 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2026-06-19',
+    endDateStr: '2026-09-06',
+    termType: 'summer',
+    academicYear: '2025-2026',
+    description: 'MEB 2025-2026 Yaz Tatili • 80 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2026-11-14',
+    endDateStr: '2026-11-22',
+    termType: 'midterm1',
+    academicYear: '2026-2027',
+    description: 'MEB 2026-2027 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2027
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2027-01-23',
+    endDateStr: '2027-02-07',
+    termType: 'semester',
+    academicYear: '2026-2027',
+    description: 'MEB 2026-2027 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2027-04-10',
+    endDateStr: '2027-04-18',
+    termType: 'midterm2',
+    academicYear: '2026-2027',
+    description: 'MEB 2026-2027 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2027-06-18',
+    endDateStr: '2027-09-05',
+    termType: 'summer',
+    academicYear: '2026-2027',
+    description: 'MEB 2026-2027 Yaz Tatili • 80 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2027-11-13',
+    endDateStr: '2027-11-21',
+    termType: 'midterm1',
+    academicYear: '2027-2028',
+    description: 'MEB 2027-2028 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2028
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2028-01-22',
+    endDateStr: '2028-02-06',
+    termType: 'semester',
+    academicYear: '2027-2028',
+    description: 'MEB 2027-2028 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2028-04-08',
+    endDateStr: '2028-04-16',
+    termType: 'midterm2',
+    academicYear: '2027-2028',
+    description: 'MEB 2027-2028 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2028-06-16',
+    endDateStr: '2028-09-10',
+    termType: 'summer',
+    academicYear: '2027-2028',
+    description: 'MEB 2027-2028 Yaz Tatili • 87 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2028-11-11',
+    endDateStr: '2028-11-19',
+    termType: 'midterm1',
+    academicYear: '2028-2029',
+    description: 'MEB 2028-2029 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2029
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2029-01-20',
+    endDateStr: '2029-02-04',
+    termType: 'semester',
+    academicYear: '2028-2029',
+    description: 'MEB 2028-2029 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2029-04-07',
+    endDateStr: '2029-04-15',
+    termType: 'midterm2',
+    academicYear: '2028-2029',
+    description: 'MEB 2028-2029 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2029-06-15',
+    endDateStr: '2029-09-09',
+    termType: 'summer',
+    academicYear: '2028-2029',
+    description: 'MEB 2028-2029 Yaz Tatili • 87 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2029-11-10',
+    endDateStr: '2029-11-18',
+    termType: 'midterm1',
+    academicYear: '2029-2030',
+    description: 'MEB 2029-2030 1. Dönem Ara Tatili • 9 Gün',
+  },
+
+  // 2030
+  {
+    name: 'Yarıyıl Tatili (Sömestr)',
+    shortName: 'Sömestr',
+    startDateStr: '2030-01-19',
+    endDateStr: '2030-02-03',
+    termType: 'semester',
+    academicYear: '2029-2030',
+    description: 'MEB 2029-2030 Yarıyıl (Sömestr) Tatili • 16 Gün',
+  },
+  {
+    name: '2. Dönem Ara Tatili',
+    shortName: '2. Ara Tatil',
+    startDateStr: '2030-04-06',
+    endDateStr: '2030-04-14',
+    termType: 'midterm2',
+    academicYear: '2029-2030',
+    description: 'MEB 2029-2030 2. Dönem Ara Tatili • 9 Gün',
+  },
+  {
+    name: 'Yaz Tatili',
+    shortName: 'Yaz Tatili',
+    startDateStr: '2030-06-14',
+    endDateStr: '2030-09-08',
+    termType: 'summer',
+    academicYear: '2029-2030',
+    description: 'MEB 2029-2030 Yaz Tatili • 87 Gün',
+  },
+  {
+    name: '1. Dönem Ara Tatili',
+    shortName: '1. Ara Tatil',
+    startDateStr: '2030-11-09',
+    endDateStr: '2030-11-17',
+    termType: 'midterm1',
+    academicYear: '2030-2031',
+    description: 'MEB 2030-2031 1. Dönem Ara Tatili • 9 Gün',
+  },
+];
+
+function parseDateYMD(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function getSchoolHolidaysForYear(year: number): SchoolHolidayPeriod[] {
+  const yearPrefix = `${year}-`;
+  return schoolHolidaysData
+    .filter((p) => p.startDateStr.startsWith(yearPrefix))
+    .map((p) => {
+      const startDate = parseDateYMD(p.startDateStr);
+      const endDate = parseDateYMD(p.endDateStr);
+      const diffMs = endDate.getTime() - startDate.getTime();
+      const daysCount = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      return {
+        id: `school-${p.startDateStr}-${p.termType}`,
+        name: p.name,
+        shortName: p.shortName,
+        startDateStr: p.startDateStr,
+        endDateStr: p.endDateStr,
+        startDate,
+        endDate,
+        daysCount,
+        description: p.description,
+        type: 'school' as const,
+        termType: p.termType,
+        academicYear: p.academicYear,
+      };
+    })
+    .sort((a, b) => a.startDateStr.localeCompare(b.startDateStr));
+}
+
+export function schoolPeriodToHolidayItem(period: SchoolHolidayPeriod): YearHolidayItem {
+  return {
+    id: period.id,
+    dateStr: period.startDateStr,
+    endDateStr: period.endDateStr,
+    date: period.startDate,
+    endDate: period.endDate,
+    daysCount: period.daysCount,
+    name: period.name,
+    shortName: period.shortName,
+    type: 'school',
+    isHalfDay: false,
+    isOfficial: false,
+    description: period.description,
+    isRange: true,
+  };
+}
+
+export function getSchoolHolidayForDate(date: Date): SchoolHolidayPeriod | null {
+  const dateStr = formatToFullDateFast(date);
+  const year = date.getFullYear();
+  const periods = getSchoolHolidaysForYear(year);
+  return periods.find((p) => dateStr >= p.startDateStr && dateStr <= p.endDateStr) || null;
 }
 
 export const SUPPORTED_HOLIDAY_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];

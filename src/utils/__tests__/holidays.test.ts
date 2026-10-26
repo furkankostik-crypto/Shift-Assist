@@ -6,6 +6,8 @@ import {
   getHolidayForDate,
   isOfficialHoliday,
   getHolidaysForYear,
+  getSchoolHolidaysForYear,
+  getSchoolHolidayForDate,
   SUPPORTED_HOLIDAY_YEARS,
 } from '../holidays';
 
@@ -136,6 +138,46 @@ describe('holidays - Official & Religious Holiday Engine', () => {
       expect(ramazan1).toBeDefined();
       expect(ramazan1?.type).toBe('religious');
       expect(ramazan1?.isOfficial).toBe(true);
+    });
+  });
+
+  describe('School Holidays (MEB Sömestr, Ara Tatil, Yaz Tatili)', () => {
+    it('returns 4 MEB school holiday periods for each supported year', () => {
+      for (const year of SUPPORTED_HOLIDAY_YEARS) {
+        const periods = getSchoolHolidaysForYear(year);
+        expect(periods.length).toBe(4);
+        expect(periods.some((p) => p.termType === 'semester')).toBe(true);
+        expect(periods.some((p) => p.termType === 'midterm2')).toBe(true);
+        expect(periods.some((p) => p.termType === 'summer')).toBe(true);
+        expect(periods.some((p) => p.termType === 'midterm1')).toBe(true);
+      }
+    });
+
+    it('identifies 2026 Sömestr dates correctly', () => {
+      const periods2026 = getSchoolHolidaysForYear(2026);
+      const semester = periods2026.find((p) => p.termType === 'semester');
+      expect(semester).toBeDefined();
+      expect(semester?.startDateStr).toBe('2026-01-17');
+      expect(semester?.endDateStr).toBe('2026-02-01');
+      expect(semester?.daysCount).toBe(16);
+
+      const withinBreak = new Date(2026, 0, 25);
+      const match = getSchoolHolidayForDate(withinBreak);
+      expect(match).toBeDefined();
+      expect(match?.name).toContain('Sömestr');
+    });
+
+    it('identifies 2026 Yaz Tatili dates correctly', () => {
+      const periods2026 = getSchoolHolidaysForYear(2026);
+      const summer = periods2026.find((p) => p.termType === 'summer');
+      expect(summer).toBeDefined();
+      expect(summer?.startDateStr).toBe('2026-06-19');
+      expect(summer?.endDateStr).toBe('2026-09-06');
+      expect(summer?.daysCount).toBe(80);
+
+      const julyDay = new Date(2026, 6, 15); // 15 Temmuz
+      const match = getSchoolHolidayForDate(julyDay);
+      expect(match?.termType).toBe('summer');
     });
   });
 });
