@@ -1637,8 +1637,8 @@ SelectedDayDetailCard.displayName = 'SelectedDayDetailCard';
 // ---------------------------------------------------------------------------
 // CalendarPage Main Component: Continuous Stream of Unique Weeks
 // ---------------------------------------------------------------------------
-const PAST_MONTHS = 12;
-const FUTURE_MONTHS = 36;
+const PAST_MONTHS = 36;
+const FUTURE_MONTHS = 60;
 
 export const CalendarPage = () => {
   const { t, i18n } = useTranslation();
@@ -1657,7 +1657,16 @@ export const CalendarPage = () => {
     closeLeavePlanning,
   } = useAppStore();
 
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(PAST_MONTHS);
+  const initialMonthIndex = useMemo(() => {
+    const now = new Date();
+    const diff =
+      (selectedDate.getFullYear() - now.getFullYear()) * 12 +
+      (selectedDate.getMonth() - now.getMonth());
+    const idx = PAST_MONTHS + diff;
+    return idx >= 0 && idx <= PAST_MONTHS + FUTURE_MONTHS ? idx : PAST_MONTHS;
+  }, [selectedDate]);
+
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(initialMonthIndex);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isTeamSelectorOpen, setIsTeamSelectorOpen] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -2077,7 +2086,7 @@ export const CalendarPage = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    const targetWeekIdx = monthWeekIndexMap.get(PAST_MONTHS);
+  const targetWeekIdx = monthWeekIndexMap.get(currentMonthIndexRef.current);
     if (targetWeekIdx !== undefined && container.clientHeight > 0) {
       const targetElement = container.children[targetWeekIdx] as HTMLElement | undefined;
       container.scrollTop = targetElement
@@ -2091,7 +2100,7 @@ export const CalendarPage = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    const targetWeekIdx = monthWeekIndexMap.get(PAST_MONTHS);
+  const targetWeekIdx = monthWeekIndexMap.get(currentMonthIndexRef.current);
     if (targetWeekIdx !== undefined) {
       const timer = setTimeout(() => {
         if (container && container.clientHeight > 0) {

@@ -309,3 +309,69 @@ export type HolidayBadgeColors = {
 export function getHolidayBadgeColors(_type?: HolidayType): HolidayBadgeColors {
   return UNIFIED_HOLIDAY_BADGE_COLORS;
 }
+
+export interface YearHolidayItem {
+  id: string;
+  dateStr: string; // yyyy-MM-dd
+  date: Date;
+  name: string;
+  shortName: string;
+  type: HolidayType;
+  isHalfDay: boolean;
+  isOfficial: boolean;
+  description: string;
+}
+
+export const SUPPORTED_HOLIDAY_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+
+export function getHolidaysForYear(year: number): YearHolidayItem[] {
+  const items: YearHolidayItem[] = [];
+  const yearPrefix = `${year}-`;
+
+  // 1. Fixed holidays for the given year
+  for (const h of fixedHolidays) {
+    const dateStr = `${year}-${h.date}`;
+    const [mStr, dStr] = h.date.split('-');
+    const dateObj = new Date(year, Number(mStr) - 1, Number(dStr));
+    const isOfficial = h.isOfficial ?? (h.type === 'national' || h.type === 'eve');
+    items.push({
+      id: `fixed-${dateStr}-${h.shortName}`,
+      dateStr,
+      date: dateObj,
+      name: h.name,
+      shortName: h.shortName,
+      type: h.type,
+      isHalfDay: Boolean(h.isHalfDay),
+      isOfficial,
+      description: h.description || h.name,
+    });
+  }
+
+  // 2. Dynamic (religious) holidays for the given year
+  for (const h of dynamicHolidays) {
+    if (h.date.startsWith(yearPrefix)) {
+      const [yStr, mStr, dStr] = h.date.split('-');
+      const dateObj = new Date(Number(yStr), Number(mStr) - 1, Number(dStr));
+      const isOfficial = h.isOfficial ?? true;
+      items.push({
+        id: `dynamic-${h.date}-${h.shortName}`,
+        dateStr: h.date,
+        date: dateObj,
+        name: h.name,
+        shortName: h.shortName,
+        type: h.type,
+        isHalfDay: Boolean(h.isHalfDay),
+        isOfficial,
+        description:
+          h.description ||
+          (h.isHalfDay
+            ? 'Arife Günü • Yarım Gün Tatil (13:00 Sonrası)'
+            : `${h.name} • Resmi Tatil`),
+      });
+    }
+  }
+
+  items.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+  return items;
+}
+

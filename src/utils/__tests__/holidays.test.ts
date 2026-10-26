@@ -5,6 +5,8 @@ import {
   getHolidayDetail,
   getHolidayForDate,
   isOfficialHoliday,
+  getHolidaysForYear,
+  SUPPORTED_HOLIDAY_YEARS,
 } from '../holidays';
 
 describe('holidays - Official & Religious Holiday Engine', () => {
@@ -107,6 +109,33 @@ describe('holidays - Official & Religious Holiday Engine', () => {
       const regularDay = new Date(2026, 1, 10); // 10 Şubat 2026
       expect(getHolidayDetail(regularDay)).toBeNull();
       expect(isOfficialHoliday(regularDay)).toBe(false);
+    });
+  });
+
+  describe('getHolidaysForYear & SUPPORTED_HOLIDAY_YEARS', () => {
+    it('supports years 2024 through 2030', () => {
+      expect(SUPPORTED_HOLIDAY_YEARS).toEqual([2024, 2025, 2026, 2027, 2028, 2029, 2030]);
+    });
+
+    it('returns sorted fixed and dynamic holidays for a given year', () => {
+      const list2026 = getHolidaysForYear(2026);
+      expect(list2026.length).toBeGreaterThan(15);
+
+      // Verify chronological sorting
+      for (let i = 1; i < list2026.length; i++) {
+        expect(list2026[i].dateStr >= list2026[i - 1].dateStr).toBe(true);
+      }
+
+      // First item should be Yılbaşı (2026-01-01)
+      expect(list2026[0].dateStr).toBe('2026-01-01');
+      expect(list2026[0].name).toBe('Yılbaşı');
+      expect(list2026[0].isOfficial).toBe(true);
+
+      // Should include 2026 Ramazan Bayramı 1. Gün
+      const ramazan1 = list2026.find((h) => h.dateStr === '2026-03-20');
+      expect(ramazan1).toBeDefined();
+      expect(ramazan1?.type).toBe('religious');
+      expect(ramazan1?.isOfficial).toBe(true);
     });
   });
 });

@@ -5,6 +5,7 @@ import {
   Menu,
   X,
   CalendarDays,
+  CalendarHeart,
   Palmtree,
   List,
   Settings,
@@ -92,6 +93,14 @@ export const FloatingNavMenu: React.FC = () => {
       iconBg: 'bg-amber-500/10 dark:bg-amber-500/20',
       iconColor: 'text-amber-600 dark:text-amber-400',
       badge: 'Fırsatlar',
+    },
+    {
+      to: '/holidays',
+      label: t('holidays', 'Resmi Tatiller'),
+      description: 'Senelik resmi tatiller ve özel günler',
+      icon: <CalendarHeart className="w-5 h-5" />,
+      iconBg: 'bg-rose-500/10 dark:bg-rose-500/20',
+      iconColor: 'text-rose-600 dark:text-rose-400',
     },
     {
       to: '/patterns',

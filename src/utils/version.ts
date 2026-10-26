@@ -1,14 +1,14 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.5';
-export const APP_BUILD_DATE = '28.09.2026';
+export const APP_VERSION = '1.4.6';
+export const APP_BUILD_DATE = '26.10.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  'Apple (iOS Safari & PWA) cihazlarda sonraki aya kaydırınca yeni ay günlerinin aktif görünüme geçmeme sorunu giderildi.',
-  'Takvim kaydırma ve ay geçişlerinde gerçek DOM konum (offsetTop) tabanlı sıfır sapmalı senkronizasyon sağlandı.',
-  'Apple Safe Area (Home Bar) boşluğu kaydırma alanı dışına taşınarak 6 haftalık takvim satırlarının tam eşit bölünmesi sağlandı.',
-  'iOS WebKit üzerinde scroll-snap ve katman boyama (repaint) gecikmesine yol açan CSS kısıtlamaları optimize edildi.',
+  "Menüye yeni 'Resmi Tatiller & Özel Günler' sayfası eklendi (2024–2030 yılları arası tüm resmi tatil, dini bayram, arife ve özel günler).",
+  'Resmi tatillerin aktif vardiya düzeninizde hangi vardiyaya veya istirahate denk geldiğini gösteren canlı özet ve vardiya rozetleri eklendi.',
+  'Listedeki herhangi bir resmi tatile dokunarak takvimde doğrudan ilgili tarihe ve gün detay kartına odaklanma özelliği eklendi.',
+  'Takvim geçmiş/gelecek ay menzili genişletildi (36 ay geçmiş, 60 ay gelecek) ve seçili tarihe göre akıllı başlangıç senkronizasyonu iyileştirildi.',
 ];
 
 export interface VersionInfo {

@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const LeavePlannerPage = lazy(() => import('./pages/LeavePlannerPage'));
+const HolidaysPage = lazy(() => import('./pages/HolidaysPage'));
 const PatternsPage = lazy(() => import('./pages/PatternsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<CalendarPage />} />
             <Route path="leave-planner" element={<LeavePlannerPage />} />
+            <Route path="holidays" element={<HolidaysPage />} />
             <Route path="patterns" element={<PatternsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
