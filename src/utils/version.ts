@@ -1,14 +1,14 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.7';
+export const APP_VERSION = '1.4.8';
 export const APP_BUILD_DATE = '27.10.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  "Özel Günler sayfasına MEB okul tatilleri (Sömestr, 1. ve 2. Dönem Ara Tatilleri, Yaz Tatili) aralıkları ve süreleri eklendi.",
-  'Resmi tatil ve özel gün kartları daha kompakt ve aktif bir görünüme kavuşturuldu; sol kenar canlı kategori renk göstergesi eklendi.',
-  "Okul tatilleri için hızlı filtre sekmesi ('Okul Tatilleri 🎒') ve tek dokunuşla takvimde ilgili döneme odaklanma eklendi.",
-  "Özet sayaçlarına 'Okul Tatilleri' dönemi eklenerek 2x2 kompakt bilgi paneli oluşturuldu.",
+  'Özel Günler sayfasından seçilen tatil veya okul tatili dönemini takvimde renkli çerçeve ve ışımayla vurgulama (Holiday Highlight).',
+  'Çok günlük bayramların (Ramazan, Kurban, 29 Ekim) ve MEB tatil aralıklarının tamamını takvimde blok halinde gösterme.',
+  "Takvim üstüne sabitlenen 'Tatillere Dön' hızlı eylem çubuğu ile listeye kesintisiz dönüş.",
+  'Gün detay panelinden tatil listesine hızlı geri dönüş butonu.',
 ];
 
 export interface VersionInfo {

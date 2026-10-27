@@ -24,6 +24,22 @@ export interface LeavePreview {
   breakdown?: any[];
 }
 
+export interface HolidayHighlight {
+  id?: string;
+  name: string;
+  shortName?: string;
+  dateStr: string;
+  endDateStr?: string;
+  dates: string[];
+  daysCount?: number;
+  type?: string;
+  isHalfDay?: boolean;
+  isOfficial?: boolean;
+  description?: string;
+  year?: number;
+  filterTab?: string;
+}
+
 import type { LeavePeriod } from '../utils/leavePlanner';
 
 export type WizardStep = 'METHOD' | 'PERIOD_SELECT' | 'OPPORTUNITIES' | 'MANUAL_CALENDAR';
@@ -77,6 +93,10 @@ interface AppState {
   setLeavePlanningCustomRange: (start: string, end: string) => void;
   globalToastMessage: string | null;
   showGlobalToast: (msg: string) => void;
+  // Holiday highlight navigation state
+  holidayHighlight: HolidayHighlight | null;
+  setHolidayHighlight: (highlight: HolidayHighlight | null) => void;
+  clearHolidayHighlight: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -112,6 +132,9 @@ export const useAppStore = create<AppState>()(
       leavePreview: null,
       setLeavePreview: (leavePreview) => set({ leavePreview }),
       clearLeavePreview: () => set({ leavePreview: null }),
+      holidayHighlight: null,
+      setHolidayHighlight: (holidayHighlight) => set({ holidayHighlight }),
+      clearHolidayHighlight: () => set({ holidayHighlight: null }),
       isDayDetailOpen: false,
       setIsDayDetailOpen: (isDayDetailOpen) => set({ isDayDetailOpen }),
       hasCompletedSetup: false,

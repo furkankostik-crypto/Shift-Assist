@@ -8,6 +8,8 @@ import {
   getHolidaysForYear,
   getSchoolHolidaysForYear,
   getSchoolHolidayForDate,
+  schoolPeriodToHolidayItem,
+  getRelatedHolidayDates,
   SUPPORTED_HOLIDAY_YEARS,
 } from '../holidays';
 
@@ -178,6 +180,50 @@ describe('holidays - Official & Religious Holiday Engine', () => {
       const julyDay = new Date(2026, 6, 15); // 15 Temmuz
       const match = getSchoolHolidayForDate(julyDay);
       expect(match?.termType).toBe('summer');
+    });
+  });
+
+  describe('getRelatedHolidayDates', () => {
+    it('returns single date for standard 1-day holiday', () => {
+      const holidays = getHolidaysForYear(2026);
+      const yilbasi = holidays.find((h) => h.name === 'Yılbaşı')!;
+      expect(yilbasi).toBeDefined();
+      const dates = getRelatedHolidayDates(yilbasi, 2026);
+      expect(dates).toEqual(['2026-01-01']);
+    });
+
+    it('returns all 4 days (Arife + 3 days) for Ramazan Bayramı', () => {
+      const holidays = getHolidaysForYear(2026);
+      const ramazanDay1 = holidays.find((h) => h.name.includes('Ramazan Bayramı 1. Gün'))!;
+      expect(ramazanDay1).toBeDefined();
+      const dates = getRelatedHolidayDates(ramazanDay1, 2026);
+      expect(dates).toEqual(['2026-03-19', '2026-03-20', '2026-03-21', '2026-03-22']);
+    });
+
+    it('returns all 5 days (Arife + 4 days) for Kurban Bayramı', () => {
+      const holidays = getHolidaysForYear(2026);
+      const kurbanDay1 = holidays.find((h) => h.name.includes('Kurban Bayramı 1. Gün'))!;
+      expect(kurbanDay1).toBeDefined();
+      const dates = getRelatedHolidayDates(kurbanDay1, 2026);
+      expect(dates).toEqual(['2026-05-26', '2026-05-27', '2026-05-28', '2026-05-29', '2026-05-30']);
+    });
+
+    it('returns both 28 Oct and 29 Oct for Cumhuriyet Bayramı', () => {
+      const holidays = getHolidaysForYear(2026);
+      const cumhuriyet = holidays.find((h) => h.name.includes('Cumhuriyet Bayramı'))!;
+      expect(cumhuriyet).toBeDefined();
+      const dates = getRelatedHolidayDates(cumhuriyet, 2026);
+      expect(dates).toEqual(['2026-10-28', '2026-10-29']);
+    });
+
+    it('returns all dates in interval for school holiday ranges', () => {
+      const schoolPeriods = getSchoolHolidaysForYear(2026);
+      const semester = schoolPeriods.find((p) => p.termType === 'semester')!;
+      const item = schoolPeriodToHolidayItem(semester);
+      const dates = getRelatedHolidayDates(item, 2026);
+      expect(dates.length).toBe(16);
+      expect(dates[0]).toBe('2026-01-17');
+      expect(dates[dates.length - 1]).toBe('2026-02-01');
     });
   });
 });

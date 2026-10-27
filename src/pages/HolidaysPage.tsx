@@ -23,6 +23,7 @@ import {
   getHolidaysForYear,
   getSchoolHolidaysForYear,
   schoolPeriodToHolidayItem,
+  getRelatedHolidayDates,
   SUPPORTED_HOLIDAY_YEARS,
   type YearHolidayItem,
 } from '../utils/holidays';
@@ -37,15 +38,21 @@ export const HolidaysPage: React.FC = () => {
   const navigate = useNavigate();
   const dateLocale = i18n.language?.startsWith('tr') ? tr : enUS;
 
-  const { setSelectedDate, setIsDayDetailOpen } = useAppStore();
+  const { setSelectedDate, setIsDayDetailOpen, holidayHighlight, setHolidayHighlight } = useAppStore();
 
   const currentYear = new Date().getFullYear();
   const initialYear = SUPPORTED_HOLIDAY_YEARS.includes(currentYear)
     ? currentYear
     : 2026;
 
-  const [selectedYear, setSelectedYear] = useState<number>(initialYear);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('OFFICIAL');
+  const [selectedYear, setSelectedYear] = useState<number>(
+    holidayHighlight?.year && SUPPORTED_HOLIDAY_YEARS.includes(holidayHighlight.year)
+      ? holidayHighlight.year
+      : initialYear
+  );
+  const [activeFilter, setActiveFilter] = useState<FilterTab>(
+    (holidayHighlight?.filterTab as FilterTab) || 'OFFICIAL'
+  );
 
   // Load shift data to show which shift falls on each holiday
   const dbData = useLiveQuery(async () => {
@@ -207,14 +214,47 @@ export const HolidaysPage: React.FC = () => {
 
   const handleSelectHoliday = (item: YearHolidayItem) => {
     hapticTap();
+    const relatedDates = getRelatedHolidayDates(item, selectedYear);
+    setHolidayHighlight({
+      id: item.id,
+      name: item.name,
+      shortName: item.shortName,
+      dateStr: item.dateStr,
+      endDateStr: item.endDateStr,
+      dates: relatedDates,
+      daysCount: relatedDates.length,
+      type: item.type,
+      isHalfDay: item.isHalfDay,
+      isOfficial: item.isOfficial,
+      description: item.description,
+      year: selectedYear,
+      filterTab: activeFilter,
+    });
     setSelectedDate(item.date);
-    setIsDayDetailOpen(true);
+    setIsDayDetailOpen(false);
     navigate('/');
   };
 
   const handleSelectSchoolHoliday = (item: YearHolidayItem) => {
     hapticTap();
+    const relatedDates = getRelatedHolidayDates(item, selectedYear);
+    setHolidayHighlight({
+      id: item.id,
+      name: item.name,
+      shortName: item.shortName,
+      dateStr: item.dateStr,
+      endDateStr: item.endDateStr,
+      dates: relatedDates,
+      daysCount: relatedDates.length,
+      type: 'school',
+      isHalfDay: false,
+      isOfficial: false,
+      description: item.description,
+      year: selectedYear,
+      filterTab: activeFilter,
+    });
     setSelectedDate(item.date);
+    setIsDayDetailOpen(false);
     navigate('/');
   };
 

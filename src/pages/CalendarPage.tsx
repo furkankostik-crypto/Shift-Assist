@@ -29,13 +29,15 @@ import {
   CalendarDays,
   CalendarCheck,
   Calendar as CalendarIcon,
+  CalendarHeart,
+  School,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   Users,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAppStore } from '../store/useAppStore';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAppStore, type HolidayHighlight } from '../store/useAppStore';
 import {
   hapticTap,
   hapticSelection,
@@ -205,6 +207,10 @@ interface DayCellProps {
   holidayDetail: HolidayDetail | null;
   holidayColors: HolidayBadgeColors | null;
   leaveVisual: LeaveRangeVisualInfo | null;
+  isHolidayHighlighted?: boolean;
+  isHolidayPrimary?: boolean;
+  isHolidaySchool?: boolean;
+  isHolidayRange?: boolean;
   customVacationColor: string;
   customVacationIcon: string;
   customVacationName: string;
@@ -219,6 +225,10 @@ const areDayCellPropsEqual = (prev: DayCellProps, next: DayCellProps): boolean =
   return (
     prev.isLoading === next.isLoading &&
     prev.isSelected === next.isSelected &&
+    prev.isHolidayHighlighted === next.isHolidayHighlighted &&
+    prev.isHolidayPrimary === next.isHolidayPrimary &&
+    prev.isHolidaySchool === next.isHolidaySchool &&
+    prev.isHolidayRange === next.isHolidayRange &&
     prev.isToday === next.isToday &&
     prev.isCurrentMonth === next.isCurrentMonth &&
     prev.dayStr === next.dayStr &&
@@ -261,6 +271,10 @@ const DayCell = React.memo(
     holidayDetail,
     holidayColors,
     leaveVisual,
+    isHolidayHighlighted = false,
+    isHolidayPrimary = false,
+    isHolidaySchool = false,
+    isHolidayRange = false,
     customVacationColor,
     customVacationIcon,
     customVacationName,
@@ -291,6 +305,7 @@ const DayCell = React.memo(
       isVacation || exception?.type === 'SICK' || shiftDay?.type === 'REST';
     const shiftColor = baseDisplayColor || (isRestShift ? '#10b981' : undefined);
 
+    const highlightColor = isHolidaySchool ? '#0284c7' : '#e11d48';
     const hasShift = Boolean(shiftColor) || hasLeaveVisual;
     const cellBg = isVacation
       ? customVacationColor
@@ -366,7 +381,9 @@ const DayCell = React.memo(
                 : 'opacity-100 hover:brightness-105 active:scale-[0.98]'
             }
             ${
-              isSelected
+              isHolidayHighlighted
+                ? `ring-3 ring-inset ${isHolidaySchool ? 'ring-sky-400' : 'ring-rose-500'} z-30 shadow-lg !opacity-100 ${isHolidayPrimary ? 'brightness-110' : ''}`
+                : isSelected
                 ? !isLoading && (hasShift || isHoliday)
                   ? 'ring-2.5 ring-inset ring-white z-30 shadow-md !opacity-100'
                   : 'ring-2.5 ring-inset ring-primary-500 dark:ring-primary-400 z-30 shadow-md !opacity-100'
@@ -382,6 +399,20 @@ const DayCell = React.memo(
           {/* Leave Outer Frame Overlay */}
           {hasLeaveVisual && leaveVisual && (
             <LeaveFrameOverlay visual={leaveVisual} vacationColor={customVacationColor} />
+          )}
+
+          {/* Holiday Highlight Indicator & Range Overlay */}
+          {isHolidayHighlighted && (
+            <>
+              <div
+                style={{ backgroundColor: `${highlightColor}${isHolidayRange ? '20' : '25'}` }}
+                className="absolute inset-0 pointer-events-none z-10"
+              />
+              <span
+                style={{ backgroundColor: highlightColor }}
+                className={`absolute top-0.5 right-0.5 rounded-full ${isHolidayPrimary ? 'w-2.5 h-2.5 ring-2 ring-white animate-pulse' : 'w-2 h-2 opacity-90'} shadow-xs pointer-events-none z-20`}
+              />
+            </>
           )}
 
           {/* Top Row */}
@@ -516,7 +547,9 @@ const DayCell = React.memo(
                 : 'opacity-100 hover:brightness-105 active:scale-[0.97]'
             }
             ${
-              isSelected
+              isHolidayHighlighted
+                ? `ring-3 ${isHolidaySchool ? 'ring-sky-500 shadow-sky-500/40' : 'ring-rose-500 shadow-rose-500/40'} ring-offset-2 dark:ring-offset-slate-950 z-30 shadow-lg scale-[0.98] !opacity-100`
+                : isSelected
                 ? 'ring-2 ring-primary-500 dark:ring-primary-400 ring-offset-1 dark:ring-offset-slate-950 z-30 shadow-md scale-[0.98] !opacity-100'
                 : ''
             }
@@ -525,6 +558,22 @@ const DayCell = React.memo(
           {/* Today Frame Overlay */}
           {isToday && (
             <div className={`absolute inset-0 border-[3px] border-slate-900 dark:border-white pointer-events-none z-0 ${hasLeaveVisual && leaveVisual?.isRowStart ? 'rounded-l-2xl' : 'rounded-l-lg sm:rounded-l-xl'} ${hasLeaveVisual && leaveVisual?.isRowEnd ? 'rounded-r-2xl' : 'rounded-r-lg sm:rounded-r-xl'}`} />
+          )}
+
+          {/* Holiday Highlight Overlays */}
+          {isHolidayHighlighted && (
+            <div
+              style={{ backgroundColor: `${highlightColor}20` }}
+              className="absolute inset-0 pointer-events-none z-0"
+            />
+          )}
+          {isHolidayPrimary && (
+            <span
+              style={{ backgroundColor: highlightColor }}
+              className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded-xs text-white font-black text-[6.5px] uppercase shadow-2xs z-20 pointer-events-none"
+            >
+              Seçili
+            </span>
           )}
 
           {/* Precise Corner Badges ONLY on exact start and end dates */}
@@ -669,7 +718,9 @@ const DayCell = React.memo(
         ? `${customHolidayColor}14`
         : undefined;
 
-      const neonGlow = isVacation
+      const neonGlow = isHolidayHighlighted
+        ? `0 0 16px ${highlightColor}90`
+        : isVacation
         ? `0 0 14px ${customVacationColor}80`
         : isHoliday
         ? `0 0 12px ${customHolidayColor}60`
@@ -846,10 +897,16 @@ const DayCell = React.memo(
           )}
 
           {/* Left Vertical Accent Bar */}
-          {!isLoading && (hasShift || hasLeaveVisual) && (
+          {!isLoading && (isHolidayHighlighted || hasShift || hasLeaveVisual) && (
             <div
-              className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 rounded-l-xs"
-              style={{ backgroundColor: isVacation ? customVacationColor : shiftColor }}
+              className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 rounded-l-xs z-20"
+              style={{
+                backgroundColor: isHolidayHighlighted
+                  ? highlightColor
+                  : isVacation
+                  ? customVacationColor
+                  : shiftColor,
+              }}
             />
           )}
 
@@ -976,6 +1033,22 @@ const DayCell = React.memo(
           }
         `}
       >
+        {/* Holiday Highlight Overlay */}
+        {isHolidayHighlighted && (
+          <div
+            style={{ backgroundColor: `${highlightColor}18` }}
+            className="absolute inset-0 pointer-events-none z-0"
+          />
+        )}
+        {isHolidayPrimary && (
+          <span
+            style={{ backgroundColor: highlightColor }}
+            className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded-xs text-white font-black text-[6.5px] uppercase shadow-2xs z-20 pointer-events-none"
+          >
+            Tatil
+          </span>
+        )}
+
         {/* Top Row */}
         <div className="absolute top-1 w-full flex items-center justify-between px-0.5 leading-none z-10">
           <span
@@ -1109,6 +1182,7 @@ interface WeekRowProps {
   customHolidayIcon: string;
   customHolidayName: string;
   isLoadingData: boolean;
+  holidayHighlight: HolidayHighlight | null;
   onSelectDate: (date: Date) => void;
 }
 
@@ -1138,6 +1212,18 @@ const areWeekRowPropsEqual = (prev: WeekRowProps, next: WeekRowProps): boolean =
   const nextContainsSelected = next.week.some((d) => d.dayStr === next.selectedDateStr);
   if (prevContainsSelected || nextContainsSelected) {
     if (prev.selectedDateStr !== next.selectedDateStr) {
+      return false;
+    }
+  }
+
+  if (prev.holidayHighlight !== next.holidayHighlight) {
+    const prevMatches = prev.holidayHighlight?.dates?.some((dateStr) =>
+      prev.week.some((d) => d.dayStr === dateStr)
+    );
+    const nextMatches = next.holidayHighlight?.dates?.some((dateStr) =>
+      next.week.some((d) => d.dayStr === dateStr)
+    );
+    if (prevMatches || nextMatches) {
       return false;
     }
   }
@@ -1175,6 +1261,7 @@ const WeekRow = React.memo(
     customHolidayIcon,
     customHolidayName,
     isLoadingData,
+    holidayHighlight,
     onSelectDate,
   }: WeekRowProps) => {
     return (
@@ -1184,13 +1271,23 @@ const WeekRow = React.memo(
           isSnapTarget ? 'snap-start snap-always' : ''
         }`}
       >
-        {week.map((item) => (
-          <DayCell
-            key={item.dayStr}
-            day={item.day}
-            dayStr={item.dayStr}
-            dayNumber={item.dayNumber}
-            isSelected={item.dayStr === selectedDateStr}
+        {week.map((item) => {
+          const isHolidayHighlighted = Boolean(holidayHighlight?.dates?.includes(item.dayStr));
+          const isHolidayPrimary = holidayHighlight?.dateStr === item.dayStr;
+          const isHolidaySchool = holidayHighlight?.type === 'school';
+          const isHolidayRange = (holidayHighlight?.dates?.length || 0) > 1;
+
+          return (
+            <DayCell
+              key={item.dayStr}
+              day={item.day}
+              dayStr={item.dayStr}
+              dayNumber={item.dayNumber}
+              isSelected={item.dayStr === selectedDateStr}
+              isHolidayHighlighted={isHolidayHighlighted}
+              isHolidayPrimary={isHolidayPrimary}
+              isHolidaySchool={isHolidaySchool}
+              isHolidayRange={isHolidayRange}
             isToday={item.dayStr === todayStr}
             isCurrentMonth={isSameMonth(item.day, currentVisibleMonth)}
             calendarTheme={calendarTheme}
@@ -1209,7 +1306,8 @@ const WeekRow = React.memo(
             isLoading={isLoadingData}
             onSelectDate={onSelectDate}
           />
-        ))}
+          );
+        })}
       </div>
     );
   },
@@ -1231,6 +1329,8 @@ interface SelectedDayDetailCardProps {
   customHolidayColor: string;
   customHolidayIcon: string;
   customSickIcon?: string;
+  holidayHighlight?: HolidayHighlight | null;
+  onReturnToHolidays?: () => void;
   isOpen: boolean;
   dateLocale: any;
   t: any;
@@ -1255,6 +1355,8 @@ const SelectedDayDetailCard = React.memo(
     customHolidayColor,
     customHolidayIcon,
     customSickIcon,
+    holidayHighlight,
+    onReturnToHolidays,
     isOpen,
     dateLocale,
     t,
@@ -1317,6 +1419,17 @@ const SelectedDayDetailCard = React.memo(
                 </h3>
 
                 <div className="flex items-center space-x-1.5 shrink-0">
+                  {holidayHighlight && onReturnToHolidays && (
+                    <button
+                      type="button"
+                      onClick={onReturnToHolidays}
+                      className="bg-primary-600 hover:bg-primary-500 text-white text-[10.5px] font-black px-2.5 py-1 rounded-full flex items-center space-x-1 transition-all active:scale-95 cursor-pointer touch-manipulation shadow-xs"
+                      title="Tatiller Listesine Dön"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 -ml-0.5" />
+                      <span>Tatillere Dön</span>
+                    </button>
+                  )}
                   {isToday ? (
                     <span className="bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-400 text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase">
                       Bugün
@@ -1642,6 +1755,7 @@ const FUTURE_MONTHS = 60;
 
 export const CalendarPage = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const {
     calendarTheme,
     shiftDisplayMode,
@@ -1655,16 +1769,19 @@ export const CalendarPage = () => {
     isLeavePlanningMinimized,
     restoreLeavePlanning,
     closeLeavePlanning,
+    holidayHighlight,
+    clearHolidayHighlight,
   } = useAppStore();
 
   const initialMonthIndex = useMemo(() => {
     const now = new Date();
+    const targetDate = holidayHighlight ? parseISO(holidayHighlight.dateStr) : selectedDate;
     const diff =
-      (selectedDate.getFullYear() - now.getFullYear()) * 12 +
-      (selectedDate.getMonth() - now.getMonth());
+      (targetDate.getFullYear() - now.getFullYear()) * 12 +
+      (targetDate.getMonth() - now.getMonth());
     const idx = PAST_MONTHS + diff;
     return idx >= 0 && idx <= PAST_MONTHS + FUTURE_MONTHS ? idx : PAST_MONTHS;
-  }, [selectedDate]);
+  }, [selectedDate, holidayHighlight]);
 
   const [currentMonthIndex, setCurrentMonthIndex] = useState(initialMonthIndex);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -2334,6 +2451,22 @@ export const CalendarPage = () => {
     [months.length, monthWeekIndexMap]
   );
 
+  // Auto-scroll to month when holidayHighlight changes or mounts
+  useEffect(() => {
+    if (!holidayHighlight) return;
+    const targetDate = parseISO(holidayHighlight.dateStr);
+    const targetMonthStart = startOfMonth(targetDate);
+    const targetIdx = months.findIndex((m) => isSameMonth(m, targetMonthStart));
+    if (targetIdx !== -1) {
+      isProgrammaticScroll.current = true;
+      scrollToMonth(targetIdx, false);
+      const timer = setTimeout(() => {
+        scrollToMonth(targetIdx, false);
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [holidayHighlight, months, scrollToMonth]);
+
   const handleOpenDetail = useCallback(() => {
     if (!isDayDetailOpen) {
       setIsDayDetailOpen(true);
@@ -2761,6 +2894,104 @@ export const CalendarPage = () => {
         </div>
       )}
 
+      {/* Floating Holiday Highlight Dock with Back Button */}
+      {holidayHighlight && !leavePreview && (
+        <div
+          style={{
+            borderColor: holidayHighlight.type === 'school' ? '#0284c7' : '#e11d48',
+            background:
+              holidayHighlight.type === 'school'
+                ? 'linear-gradient(to right, rgba(2, 132, 199, 0.16), rgba(2, 132, 199, 0.05), transparent)'
+                : 'linear-gradient(to right, rgba(225, 29, 72, 0.16), rgba(225, 29, 72, 0.05), transparent)',
+            boxShadow:
+              holidayHighlight.type === 'school'
+                ? '0 10px 25px -5px rgba(2, 132, 199, 0.25)'
+                : '0 10px 25px -5px rgba(225, 29, 72, 0.25)',
+          }}
+          className="mx-3 mb-2 p-2.5 sm:p-3 rounded-2xl border-2 shadow-lg flex items-center justify-between gap-2.5 shrink-0 animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          <div
+            className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer"
+            onClick={() => {
+              setSelectedDate(parseISO(holidayHighlight.dateStr));
+              setIsDayDetailOpen(true);
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: holidayHighlight.type === 'school' ? '#0284c7' : '#e11d48',
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-white flex items-center justify-center font-black shadow-xs shrink-0 text-sm"
+            >
+              {holidayHighlight.type === 'school' ? (
+                <School className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              ) : (
+                <CalendarHeart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center space-x-1.5 flex-wrap">
+                <span
+                  style={{
+                    color: holidayHighlight.type === 'school' ? '#0284c7' : '#e11d48',
+                  }}
+                  className="text-[10.5px] sm:text-xs font-black uppercase tracking-wider truncate"
+                >
+                  {holidayHighlight.name}
+                </span>
+                {holidayHighlight.daysCount && holidayHighlight.daysCount > 1 ? (
+                  <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {holidayHighlight.daysCount} Gün
+                  </span>
+                ) : holidayHighlight.isHalfDay ? (
+                  <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                    Yarım Gün
+                  </span>
+                ) : null}
+              </div>
+              <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 truncate">
+                {holidayHighlight.dates.length > 1 && holidayHighlight.endDateStr
+                  ? `${format(parseISO(holidayHighlight.dateStr), 'd MMMM', { locale: dateLocale })} - ${format(
+                      parseISO(holidayHighlight.endDateStr),
+                      'd MMMM yyyy',
+                      { locale: dateLocale }
+                    )}`
+                  : holidayHighlight.dates.length > 1
+                  ? `${format(parseISO(holidayHighlight.dates[0]), 'd MMMM', { locale: dateLocale })} - ${format(
+                      parseISO(holidayHighlight.dates[holidayHighlight.dates.length - 1]),
+                      'd MMMM yyyy',
+                      { locale: dateLocale }
+                    )}`
+                  : format(parseISO(holidayHighlight.dateStr), 'd MMMM yyyy, EEEE', { locale: dateLocale })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <button
+              onClick={() => {
+                hapticTap();
+                navigate('/holidays');
+              }}
+              className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-black shadow-md shadow-primary-600/20 active:scale-95 transition-all flex items-center space-x-1 cursor-pointer touch-manipulation"
+            >
+              <ChevronLeft className="w-4 h-4 -ml-0.5" />
+              <span>Tatillere Dön</span>
+            </button>
+            <button
+              onClick={() => {
+                hapticTap();
+                clearHolidayHighlight();
+              }}
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer"
+              title="Vurgulamayı Kaldır"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Continuing Leave Planning Session Banner (when minimized without active preview) */}
       {!leavePreview && isLeavePlanningOpen && isLeavePlanningMinimized && (
         <div className="mx-3 mb-2 p-2.5 sm:p-3 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 shadow-md flex items-center justify-between gap-2.5 shrink-0 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -2883,6 +3114,7 @@ export const CalendarPage = () => {
               customHolidayIcon={customHolidayIcon}
               customHolidayName={customHolidayName}
               isLoadingData={isLoadingData}
+              holidayHighlight={holidayHighlight}
               onSelectDate={handleSelectDate}
             />
           );
@@ -2907,6 +3139,11 @@ export const CalendarPage = () => {
         isOpen={isDayDetailOpen}
         dateLocale={dateLocale}
         t={t}
+        holidayHighlight={holidayHighlight}
+        onReturnToHolidays={() => {
+          hapticTap();
+          navigate('/holidays');
+        }}
         onClose={handleCloseDetail}
         onGoToToday={goToToday}
         onAddQuickException={handleAddQuickException}

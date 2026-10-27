@@ -748,3 +748,63 @@ export function getHolidaysForYear(year: number): YearHolidayItem[] {
   return items;
 }
 
+/**
+ * Returns all related dates (as YYYY-MM-DD strings) for a clicked holiday item.
+ * - For school holidays (ranges), returns every day in the interval.
+ * - For multi-day religious festivals (Ramazan, Kurban), returns all days including Arife.
+ * - For multi-day national holidays (29 Ekim), returns both 28 Oct (Arife) and 29 Oct.
+ * - For single-day holidays, returns just that day.
+ */
+export function getRelatedHolidayDates(item: YearHolidayItem, year?: number): string[] {
+  // 1. School holiday or custom range
+  if (item.isRange && item.endDateStr) {
+    const dates: string[] = [];
+    const [sy, sm, sd] = item.dateStr.split('-').map(Number);
+    const [ey, em, ed] = item.endDateStr.split('-').map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const end = new Date(ey, em - 1, ed);
+    const curr = new Date(start);
+    while (curr <= end) {
+      dates.push(formatToFullDateFast(curr));
+      curr.setDate(curr.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // 2. Multi-day religious or national bayrams
+  const targetYear = year || item.date?.getFullYear() || Number(item.dateStr.split('-')[0]) || 2026;
+  const allYearHolidays = getHolidaysForYear(targetYear);
+  const lowerName = (item.name || '').toLowerCase();
+
+  if (lowerName.includes('ramazan bayramı') || lowerName.includes('ramazan arifesi')) {
+    return allYearHolidays
+      .filter((h) => {
+        const n = h.name.toLowerCase();
+        return n.includes('ramazan bayramı') || n.includes('ramazan arifesi');
+      })
+      .map((h) => h.dateStr)
+      .sort();
+  }
+
+  if (lowerName.includes('kurban bayramı') || lowerName.includes('kurban arifesi')) {
+    return allYearHolidays
+      .filter((h) => {
+        const n = h.name.toLowerCase();
+        return n.includes('kurban bayramı') || n.includes('kurban arifesi');
+      })
+      .map((h) => h.dateStr)
+      .sort();
+  }
+
+  if (lowerName.includes('cumhuriyet bayramı') || item.dateStr.endsWith('10-28') || item.dateStr.endsWith('10-29')) {
+    return allYearHolidays
+      .filter((h) => h.dateStr.endsWith('10-28') || h.dateStr.endsWith('10-29'))
+      .map((h) => h.dateStr)
+      .sort();
+  }
+
+  // 3. Single day holiday
+  return [item.dateStr];
+}
+
+

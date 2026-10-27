@@ -61,4 +61,29 @@ describe('useAppStore - State Management', () => {
     useAppStore.getState().showGlobalToast('Test Toast');
     expect(useAppStore.getState().globalToastMessage).toBe('Test Toast');
   });
+
+  it('should set and clear holidayHighlight correctly', () => {
+    expect(useAppStore.getState().holidayHighlight).toBeNull();
+
+    useAppStore.getState().setHolidayHighlight({
+      id: 'dynamic-2026-03-20-ramazan',
+      name: 'Ramazan Bayramı 1. Gün',
+      dateStr: '2026-03-20',
+      dates: ['2026-03-19', '2026-03-20', '2026-03-21', '2026-03-22'],
+      daysCount: 4,
+      type: 'religious',
+      isOfficial: true,
+      year: 2026,
+      filterTab: 'OFFICIAL',
+    });
+
+    const highlight = useAppStore.getState().holidayHighlight;
+    expect(highlight).toBeDefined();
+    expect(highlight?.name).toBe('Ramazan Bayramı 1. Gün');
+    expect(highlight?.dates.length).toBe(4);
+    expect(highlight?.filterTab).toBe('OFFICIAL');
+
+    useAppStore.getState().clearHolidayHighlight();
+    expect(useAppStore.getState().holidayHighlight).toBeNull();
+  });
 });
