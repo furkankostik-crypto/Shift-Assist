@@ -1,11 +1,11 @@
 {
-  "version": "1.4.8",
+  "version": "1.4.9",
   "buildDate": "2026-10-27",
   "minSupportedVersion": "1.0.0",
   "features": [
-    "Özel Günler sayfasından seçilen tatil veya okul tatili dönemini takvimde renkli çerçeve ve ışımayla vurgulama (Holiday Highlight)",
-    "Çok günlük bayramların (Ramazan, Kurban, 29 Ekim) ve MEB tatil aralıklarının tamamını takvimde blok halinde gösterme",
-    "Takvim üstüne sabitlenen 'Tatillere Dön' hızlı eylem çubuğu ile listeye kesintisiz dönüş",
-    "Gün detay panelinden tatil listesine hızlı geri dönüş butonu"
+    "Mobil veride (4.5G/5G) operatör veya Güvenli İnternet erişim kısıtlaması olsa bile eldeki verilerle %100 çevrimdışı (Offline-First) açılma ve çalışma desteği",
+    "Tüm sayfaların (Takvim, İzin Planlayıcı, Tatiller, Döngüler, Ayarlar) tek pakette önbelleğe alınarak internetsiz ortamda anında açılması",
+    "Firebase yerel önbellek (persistentLocalCache) ve mobil şebeke uyumlu bağlantı (Long Polling) iyileştirmesi",
+    "Özel Günler sayfasından seçilen tatil dönemini takvimde renkli çerçeveyle vurgulama (Holiday Highlight)"
   ]
 }

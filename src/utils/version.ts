@@ -1,14 +1,14 @@
 import { isAppStandalone, isAppleDevice, isIosSafari } from './pwa';
 
 export const APP_NAME = 'Shift Assist';
-export const APP_VERSION = '1.4.8';
+export const APP_VERSION = '1.4.9';
 export const APP_BUILD_DATE = '27.10.2026';
 
 export const CURRENT_RELEASE_HIGHLIGHTS: string[] = [
-  'Özel Günler sayfasından seçilen tatil veya okul tatili dönemini takvimde renkli çerçeve ve ışımayla vurgulama (Holiday Highlight).',
-  'Çok günlük bayramların (Ramazan, Kurban, 29 Ekim) ve MEB tatil aralıklarının tamamını takvimde blok halinde gösterme.',
-  "Takvim üstüne sabitlenen 'Tatillere Dön' hızlı eylem çubuğu ile listeye kesintisiz dönüş.",
-  'Gün detay panelinden tatil listesine hızlı geri dönüş butonu.',
+  'Mobil veride (4.5G/5G) operatör veya Güvenli İnternet erişim kısıtlaması olsa bile eldeki verilerle %100 çevrimdışı (Offline-First) açılma ve çalışma desteği.',
+  'Tüm sayfaların (Takvim, İzin Planlayıcı, Tatiller, Döngüler, Ayarlar) tek pakette önbelleğe alınarak internetsiz ortamda anında açılması.',
+  'Firebase yerel önbellek (persistentLocalCache) ve mobil şebeke uyumlu bağlantı (Long Polling) iyileştirmesi.',
+  'Özel Günler sayfasından seçilen tatil dönemini takvimde renkli çerçeveyle vurgulama (Holiday Highlight).',
 ];
 
 export interface VersionInfo {
@@ -42,17 +42,18 @@ export function compareVersions(v1: string, v2: string): number {
 }
 
 /**
- * Fetch remote version.json bypassing caches
+ * Fetch remote version.json bypassing caches and carrier proxies
  */
 export async function fetchRemoteVersion(): Promise<VersionInfo | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
     const timestamp = Date.now();
     const res = await fetch(`/version.json?_t=${timestamp}`, {
+      method: 'GET',
       cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -64,6 +65,8 @@ export async function fetchRemoteVersion(): Promise<VersionInfo | null> {
   } catch (err) {
     console.warn('[VersionCheck] Failed to fetch remote version.json:', err);
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -91,22 +94,35 @@ export async function triggerServiceWorkerUpdate(): Promise<boolean> {
 }
 
 /**
- * Force-reloads the application and activates waiting service worker
+ * Safely activates any waiting service worker and reloads without wiping offline cache
+ * unless server connectivity is confirmed.
  */
 export async function forceAppReload(): Promise<void> {
   if (typeof window === 'undefined') return;
 
+  // Verify if the host is actually reachable before doing any destructive cache clearing
+  const remoteReachable = (await fetchRemoteVersion()) !== null;
+
   try {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.getRegistration();
-      if (registration?.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      if (registration) {
+        if (remoteReachable) {
+          await registration.update().catch(() => {});
+        }
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
       }
     }
   } catch {}
 
-  // Reload window without cache
-  window.location.reload();
+  if (remoteReachable) {
+    // Only use cache-busting query param if server is reachable; otherwise plain reload from Service Worker cache
+    window.location.reload();
+  } else {
+    window.location.reload();
+  }
 }
 
 /**

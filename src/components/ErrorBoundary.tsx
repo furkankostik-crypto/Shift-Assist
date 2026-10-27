@@ -22,9 +22,36 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in application:', error, errorInfo);
+
+    // Auto-recover once if a lazy-loaded JS chunk fails due to a new deployment
+    const msg = error?.message || '';
+    const isChunkLoadError =
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Unable to preload CSS') ||
+      error?.name === 'ChunkLoadError';
+
+    if (isChunkLoadError) {
+      try {
+        const lastReload = sessionStorage.getItem('shift_assist_chunk_reload');
+        const now = Date.now();
+        if (!lastReload || now - Number(lastReload) > 15000) {
+          sessionStorage.setItem('shift_assist_chunk_reload', String(now));
+          window.location.reload();
+        }
+      } catch {}
+    }
   }
 
-  private handleReload = () => {
+  private handleReload = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg?.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      }
+    } catch {}
     window.location.reload();
   };
 

@@ -12,6 +12,14 @@ function ReloadPrompt() {
     onRegistered(r) {
       // eslint-disable-next-line prefer-template
       console.log('SW Registered: ' + r);
+      if (r) {
+        // Also check when app returns to foreground on mobile
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            r.update().catch(() => {});
+          }
+        });
+      }
     },
     onRegisterError(error) {
       console.log('SW registration error', error);

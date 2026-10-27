@@ -74,13 +74,6 @@ export function useUpdateCheck(): UpdateCheckResult {
   const checkForUpdates = useCallback(async (manual: boolean = true) => {
     if (typeof window === 'undefined') return;
 
-    if (!navigator.onLine) {
-      globalStatus = 'offline';
-      globalErrorMessage = 'İnternet bağlantısı yok. Güncellemeler denetlenemedi.';
-      notify();
-      return;
-    }
-
     globalStatus = 'checking';
     globalErrorMessage = null;
     notify();
@@ -92,10 +85,22 @@ export function useUpdateCheck(): UpdateCheckResult {
       // 1. Check Service Worker for updates
       const swHasUpdate = await triggerServiceWorkerUpdate();
 
-      // 2. Fetch remote version.json
+      // 2. Fetch remote version.json (also acts as real connectivity check on mobile data-saver modes)
       const remoteInfo = await fetchRemoteVersion();
 
       await delayPromise;
+
+      if (!remoteInfo && !swHasUpdate) {
+        if (!navigator.onLine) {
+          globalStatus = 'offline';
+          globalErrorMessage = 'İnternet bağlantısı yok. Güncellemeler denetlenemedi.';
+        } else {
+          globalStatus = 'error';
+          globalErrorMessage =
+            'Güncelleme sunucusuna ulaşılamadı. Mobil veri kısıtlaması veya bağlantı sorunu olabilir.';
+        }
+        return;
+      }
 
       const now = Date.now();
       globalLastCheckedTime = now;

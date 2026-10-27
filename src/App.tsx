@@ -1,33 +1,25 @@
-import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import CalendarPage from './pages/CalendarPage';
+import LeavePlannerPage from './pages/LeavePlannerPage';
+import HolidaysPage from './pages/HolidaysPage';
+import PatternsPage from './pages/PatternsPage';
+import SettingsPage from './pages/SettingsPage';
 
-const CalendarPage = lazy(() => import('./pages/CalendarPage'));
-const LeavePlannerPage = lazy(() => import('./pages/LeavePlannerPage'));
-const HolidaysPage = lazy(() => import('./pages/HolidaysPage'));
-const PatternsPage = lazy(() => import('./pages/PatternsPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-
-// Live HMR dev mode active
+// Offline-first static imports: ensures all pages work 100% offline even when mobile carrier blocks domain
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-screen bg-background text-primary-500">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-        </div>
-      }>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<CalendarPage />} />
-            <Route path="leave-planner" element={<LeavePlannerPage />} />
-            <Route path="holidays" element={<HolidaysPage />} />
-            <Route path="patterns" element={<PatternsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<CalendarPage />} />
+          <Route path="leave-planner" element={<LeavePlannerPage />} />
+          <Route path="holidays" element={<HolidaysPage />} />
+          <Route path="patterns" element={<PatternsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }
